@@ -1,0 +1,11 @@
+[
+  {
+    "session_id": "e36adb37-e430-4374-ab46-6bfccabf8d41",
+    "transcript_path": "/Users/vmedvedev/.claude/projects/-Users-vmedvedev-victron/e36adb37-e430-4374-ab46-6bfccabf8d41.jsonl",
+    "cwd": "/Users/vmedvedev/victron/fastapi-mqtt-gateway",
+    "prompt_id": "48d89da6-1151-4c47-aa99-9be384f19357",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "\u043f\u0440\u043e\u0434\u043e\u043b\u0436\u0438"
+  }
+]
