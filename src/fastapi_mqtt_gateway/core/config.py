@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     jwt_access_token_expire_minutes: int = 30
     jwt_refresh_token_expire_days: int = 7
 
+    # CORS
+    cors_allowed_origins: list[str] = Field(default_factory=list)
+
     # Rate Limiting
     rate_limit_enabled: bool = True
     rate_limit_requests: int = 100
@@ -70,7 +73,9 @@ class Settings(BaseSettings):
             raise ValueError(f"log_level must be one of {allowed}")
         return v.upper()
 
-    @field_validator("allowed_topic_patterns", "blocked_topic_patterns", mode="before")
+    @field_validator(
+        "allowed_topic_patterns", "blocked_topic_patterns", "cors_allowed_origins", mode="before"
+    )
     @classmethod
     def parse_patterns(cls, v: str | list[str]) -> list[str]:
         if isinstance(v, str):
