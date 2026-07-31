@@ -1,0 +1,61 @@
+version: "3.8"
+
+services:
+  mqtt-broker:
+    image: eclipse-mosquitto:2.0
+    container_name: mqtt-broker
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - mqtt-data:/mosquitto/data
+      - mqtt-logs:/mosquitto/log
+    networks:
+      - mqtt-network
+    healthcheck:
+      test: ["CMD", "sh", "-c", "mosquitto_sub -t '$SYS/broker/uptime' -C 1 -W 2 || nc -z localhost 1883"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi-mqtt-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - MQTT_BROKER_HOST=mqtt-broker
+      - MQTT_BROKER_PORT=1883
+      - MQTT_CLIENT_ID=fastapi-mqtt-gateway
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-me-in-production-use-strong-secret}
+      - LOG_LEVEL=INFO
+    depends_on:
+      mqtt-broker:
+        condition: service_healthy
+    networks:
+      - mqtt-network
+    restart: unless-stopped
+
+  mqtt-exporter:
+    image: kpetrem/mqtt-exporter:latest
+    container_name: mqtt-exporter
+    ports:
+      - "9234:9234"
+    environment:
+      - MQTT_BROKER=tcp://mqtt-broker:1883
+      - MQTT_TOPICS=gateway/#,$SYS/#
+    depends_on:
+      - mqtt-broker
+    networks:
+      - mqtt-network
+
+networks:
+  mqtt-network:
+    driver: bridge
+
+volumes:
+  mqtt-data:
+  mqtt-logs:
