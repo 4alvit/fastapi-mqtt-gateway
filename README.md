@@ -57,30 +57,31 @@ graph TB
 
 ```mermaid
 graph LR
-    subgraph Auth["Authentication"]
-        POST_TOKEN[POST /auth/token]
-    end
+    subgraph API["API Endpoints"]
+        subgraph Auth["Authentication"]
+            POST_TOKEN["POST /auth/token"]
+        end
 
-    subgraph MQTT["MQTT Operations"]
-        POST_PUB[POST /mqtt/publish]
-        POST_SUB[POST /mqtt/subscribe]
-        POST_UNSUB[POST /mqtt/unsubscribe]
-        POST_RETAIN[POST /mqtt/retained]
-        GET_TOPICS[GET /mqtt/topics]
-        GET_TOPIC[GET /mqtt/topics/{topic}]
-    end
+        subgraph MQTT["MQTT Operations"]
+            POST_PUB["POST /mqtt/publish"]
+            POST_SUB["POST /mqtt/subscribe"]
+            POST_UNSUB["POST /mqtt/unsubscribe"]
+            POST_RETAIN["POST /mqtt/retained"]
+            GET_TOPICS["GET /mqtt/topics"]
+            GET_TOPIC["GET /mqtt/topics/{topic}"]
+        end
 
-    subgraph Health["Health"]
-        GET_HEALTH[GET /health]
-    end
+        subgraph Health["Health"]
+            GET_HEALTH["GET /health"]
+        end
 
-    subgraph WS["WebSocket"]
-        WS_ENDPOINT[WS /ws?topics=#]
-    end
+        subgraph WS["WebSocket"]
+            WS_ENDPOINT["WS /ws?topics=#"]
+        end
 
-    POST_TOKEN -->|JWT| MQTT
-    MQTT -->|Auth Required| WS
-    Health -.->|No Auth| Public
+        POST_TOKEN -.->|JWT| Auth
+        Auth -.->|Auth Required| WS
+        Health -.->|No Auth| Public
 ```
 
 ## Quick Start
