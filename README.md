@@ -79,8 +79,8 @@ graph LR
             WS_ENDPOINT["WS /ws?topics=#"]
         end
 
-        POST_TOKEN -.->|JWT| Auth
-        Auth -.->|Auth Required| WS
+        POST_TOKEN -.->|JWT| POST_TOKEN
+        POST_TOKEN -.->|Auth Required| WS_ENDPOINT
 ```
 
 ## Quick Start
