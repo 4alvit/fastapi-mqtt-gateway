@@ -79,9 +79,13 @@ graph LR
             WS_ENDPOINT["WS /ws?topics=#"]
         end
 
+        subgraph Public["Public Access"]
+            GET_HEALTH_PUBLIC["GET /health"]
+        end
+
         POST_TOKEN -.->|JWT| Auth
         Auth -.->|Auth Required| WS
-        Health -.->|No Auth| Public
+        Health -.->|No Auth Required| GET_HEALTH_PUBLIC
 ```
 
 ## Quick Start
