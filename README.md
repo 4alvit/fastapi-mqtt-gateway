@@ -55,7 +55,8 @@ graph TB
 
 ## API Endpoints
 
-```mermaid
+```
+mermaid
 graph LR
     subgraph API["API Endpoints"]
         subgraph Auth["Authentication"]
@@ -78,9 +79,7 @@ graph LR
         subgraph WS["WebSocket"]
             WS_ENDPOINT["WS /ws?topics=#"]
         end
-
-        POST_TOKEN -.->|JWT| POST_TOKEN
-        POST_TOKEN -.->|Auth Required| WS_ENDPOINT
+    end
 ```
 
 ## Quick Start
