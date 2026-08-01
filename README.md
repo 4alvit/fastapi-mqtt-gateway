@@ -81,7 +81,6 @@ graph LR
 
         POST_TOKEN -.->|JWT| Auth
         Auth -.->|Auth Required| WS
-        GET_HEALTH -.->|No Auth Required| GET_HEALTH_PUBLIC
 ```
 
 ## Quick Start
