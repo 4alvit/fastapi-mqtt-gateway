@@ -55,8 +55,7 @@ graph TB
 
 ## API Endpoints
 
-```
-mermaid
+```mermaid
 graph LR
     subgraph API["API Endpoints"]
         subgraph Auth["Authentication"]
