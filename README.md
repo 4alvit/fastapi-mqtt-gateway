@@ -1,5 +1,12 @@
 # FastAPI MQTT Gateway
 
+![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-009688.svg)
+![MQTT](https://img.shields.io/badge/MQTT-v5.0-660066.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://hub.docker.com/)
+[![Tests](https://img.shields.io/badge/Tests-pytest-green.svg)]()
+
 Production-ready REST/WebSocket → MQTT bridge with authentication, rate limiting, and real-time streaming.
 
 ## Features
