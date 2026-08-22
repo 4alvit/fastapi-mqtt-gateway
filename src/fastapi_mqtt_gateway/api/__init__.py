@@ -80,19 +80,25 @@ ClientDep = Annotated[MQTTClient, Depends(get_mqtt_client)]
 
 @router.post("/mqtt/publish", response_model=PublishResponse)
 @limiter.limit("100/minute")
-async def publish_message(request: PublishRequest, _user: UserDep, mqtt_service: ServiceDep) -> PublishResponse:
+async def publish_message(
+    request: PublishRequest, _user: UserDep, mqtt_service: ServiceDep
+) -> PublishResponse:
     return await mqtt_service.publish(request)
 
 
 @router.post("/mqtt/subscribe", response_model=SubscribeResponse)
 @limiter.limit("50/minute")
-async def subscribe_topic(request: SubscribeRequest, _user: UserDep, mqtt_service: ServiceDep) -> SubscribeResponse:
+async def subscribe_topic(
+    request: SubscribeRequest, _user: UserDep, mqtt_service: ServiceDep
+) -> SubscribeResponse:
     return await mqtt_service.subscribe(request)
 
 
 @router.post("/mqtt/unsubscribe", response_model=UnsubscribeResponse)
 @limiter.limit("50/minute")
-async def unsubscribe_topic(request: UnsubscribeRequest, _user: UserDep, mqtt_service: ServiceDep) -> UnsubscribeResponse:
+async def unsubscribe_topic(
+    request: UnsubscribeRequest, _user: UserDep, mqtt_service: ServiceDep
+) -> UnsubscribeResponse:
     return await mqtt_service.unsubscribe(request)
 
 
@@ -106,14 +112,18 @@ async def query_retained_message(
 
 @router.get("/mqtt/topics", response_model=list[TopicInfo])
 @limiter.limit("30/minute")
-async def list_topics(request: Request, _user: UserDep, mqtt_service: ServiceDep) -> list[TopicInfo]:
+async def list_topics(
+    request: Request, _user: UserDep, mqtt_service: ServiceDep
+) -> list[TopicInfo]:
     subscriptions = mqtt_service.get_subscriptions()
     return [await mqtt_service.get_topic_info(topic) for topic in subscriptions]
 
 
 @router.get("/mqtt/topics/{topic:path}", response_model=TopicInfo)
 @limiter.limit("30/minute")
-async def get_topic_info(request: Request, topic: str, _user: UserDep, mqtt_service: ServiceDep) -> TopicInfo:
+async def get_topic_info(
+    request: Request, topic: str, _user: UserDep, mqtt_service: ServiceDep
+) -> TopicInfo:
     if not mqtt_service.is_subscribed(topic):
         raise HTTPException(status_code=404, detail="Topic not subscribed")
     return await mqtt_service.get_topic_info(topic)
