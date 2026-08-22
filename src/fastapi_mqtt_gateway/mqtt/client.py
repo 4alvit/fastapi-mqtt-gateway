@@ -8,8 +8,9 @@ from typing import Any
 
 import paho.mqtt.client as mqtt
 import structlog
+from paho.mqtt.client import ConnectFlags, DisconnectFlags
 from paho.mqtt.properties import Properties
-from paho.mqtt.reasoncodes import ReasonCodes as ReasonCode
+from paho.mqtt.reasoncodes import ReasonCode
 
 from fastapi_mqtt_gateway.core.config import Settings
 
@@ -30,8 +31,8 @@ class MQTTClient:
         self,
         client: mqtt.Client,
         userdata: Any,
-        flags: ReasonCode | dict[Any, Any],
-        reason_code: ReasonCode | int,
+        flags: ConnectFlags,
+        reason_code: ReasonCode,
         properties: Properties | None,
     ) -> None:
         if reason_code == 0:
@@ -45,8 +46,8 @@ class MQTTClient:
         self,
         client: mqtt.Client,
         userdata: Any,
-        flags: ReasonCode | dict[Any, Any],
-        reason_code: ReasonCode | int,
+        disconnect_flags: DisconnectFlags,
+        reason_code: ReasonCode,
         properties: Properties | None,
     ) -> None:
         logger.warning("MQTT disconnected", reason_code=reason_code)
