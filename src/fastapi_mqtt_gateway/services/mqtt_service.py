@@ -31,6 +31,7 @@ class MQTTService:
 
     async def publish(self, request: PublishRequest) -> PublishResponse:
         try:
+            assert self.client._client is not None
             message_info = self.client._client.publish(
                 request.topic,
                 request.payload.encode() if isinstance(request.payload, str) else request.payload,
