@@ -40,11 +40,13 @@ limiter = Limiter(key_func=get_remote_address)
 
 def get_mqtt_client() -> MQTTClient:
     from fastapi_mqtt_gateway.main import app
+
     return app.state.mqtt_client
 
 
 def get_mqtt_service() -> MQTTService:
     from fastapi_mqtt_gateway.main import app
+
     return app.state.mqtt_service
 
 
@@ -64,6 +66,7 @@ async def login(request: Request, username: str, password: str):
 
 async def get_user_dep() -> str:
     from fastapi_mqtt_gateway.core.auth import get_current_user as _get_current_user
+
     user = await _get_current_user()
     return user.username
 
@@ -137,13 +140,15 @@ async def websocket_endpoint(
 
     def ws_callback(topic: str, payload: bytes):
         with contextlib.suppress(asyncio.QueueFull):
-            message_queue.put_nowait(MQTTMessage(
-                topic=topic,
-                payload=payload.decode() if isinstance(payload, bytes) else payload,
-                qos=0,
-                retain=False,
-                timestamp=asyncio.get_event_loop().time(),
-            ))
+            message_queue.put_nowait(
+                MQTTMessage(
+                    topic=topic,
+                    payload=payload.decode() if isinstance(payload, bytes) else payload,
+                    qos=0,
+                    retain=False,
+                    timestamp=asyncio.get_event_loop().time(),
+                )
+            )
 
     mqtt_client.add_message_callback(ws_callback)
 

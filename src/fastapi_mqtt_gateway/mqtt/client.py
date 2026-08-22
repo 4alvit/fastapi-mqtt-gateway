@@ -81,9 +81,7 @@ class MQTTClient:
         self._client.on_log = self._on_log
 
         if self.settings.mqtt_username:
-            self._client.username_pw_set(
-                self.settings.mqtt_username, self.settings.mqtt_password
-            )
+            self._client.username_pw_set(self.settings.mqtt_username, self.settings.mqtt_password)
 
         if self.settings.mqtt_use_tls:
             self._client.tls_set(

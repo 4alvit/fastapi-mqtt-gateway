@@ -54,9 +54,7 @@ class Settings(BaseSettings):
     # Topic Management
     default_topic_prefix: str = "gateway"
     allowed_topic_patterns: list[str] = Field(default_factory=lambda: ["#"])
-    blocked_topic_patterns: list[str] = Field(
-        default_factory=lambda: ["$SYS/#", "$share/#"]
-    )
+    blocked_topic_patterns: list[str] = Field(default_factory=lambda: ["$SYS/#", "$share/#"])
 
     # Retained Message Query
     retained_query_timeout: float = 5.0
@@ -94,4 +92,3 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-
