@@ -72,7 +72,7 @@ class MQTTClient:
         userdata: Any,
         mid: int,
         reason_codes: list[ReasonCode],
-        properties: Properties | None,
+        properties: Properties,
     ) -> None:
         logger.debug("MQTT subscribed", mid=mid, reason_codes=reason_codes)
 

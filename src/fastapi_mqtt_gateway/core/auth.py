@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import jwt
+from jose import JWTError, jwt
 from pydantic import BaseModel
 
 from fastapi_mqtt_gateway.core.config import get_settings
@@ -35,7 +35,7 @@ def verify_token(token: str) -> dict | None:
     try:
         payload: dict | None = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
-    except jwt.JWTError:
+    except JWTError:
         return None
 
 
