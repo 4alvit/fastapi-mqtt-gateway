@@ -58,4 +58,4 @@ htmlcov/
 .dmypy.json
 
 # Ruff
-.ruff_cache/
+.ruff_cache/*.backup
