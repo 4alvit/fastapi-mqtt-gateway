@@ -15,7 +15,7 @@ from fastapi import (
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from fastapi_mqtt_gateway.core.auth import create_access_token
+from fastapi_mqtt_gateway.core.auth import User, create_access_token, get_current_user
 from fastapi_mqtt_gateway.core.config import get_settings
 from fastapi_mqtt_gateway.models import (
     HealthResponse,
@@ -66,10 +66,9 @@ async def login(request: Request, username: str, password: str) -> Token:
     return Token(access_token=access_token, expires_in=expires_in)
 
 
-async def get_user_dep() -> str:
-    from fastapi_mqtt_gateway.core.auth import get_current_user as _get_current_user
-
-    user = await _get_current_user()
+async def get_user_dep(
+    user: Annotated[User, Depends(get_current_user)],
+) -> str:
     return user.username
 
 
