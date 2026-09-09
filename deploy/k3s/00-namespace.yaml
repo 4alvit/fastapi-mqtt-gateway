@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mqtt-gateway
+  labels:
+    app.kubernetes.io/name: fastapi-mqtt-gateway
+    app.kubernetes.io/part-of: victron-home

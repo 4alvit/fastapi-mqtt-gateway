@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fastapi-mqtt-gateway
+  labels:
+    app: fastapi-mqtt-gateway
+data:
+  APP_NAME: "FastAPI MQTT Gateway"
+  DEBUG: "false"
+  HOST: "0.0.0.0"
+  PORT: "8000"
+  # Cluster Mosquitto (homeassistant ns) — adjust if using a different broker
+  MQTT_BROKER_HOST: "mosquitto.homeassistant.svc.cluster.local"
+  MQTT_BROKER_PORT: "1883"
+  MQTT_CLIENT_ID: "fastapi-mqtt-gateway"
+  MQTT_KEEPALIVE: "60"
+  MQTT_CLEAN_SESSION: "true"
+  MQTT_USE_TLS: "false"
+  JWT_ALGORITHM: "HS256"
+  JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+  JWT_REFRESH_TOKEN_EXPIRE_DAYS: "7"
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_REQUESTS: "100"
+  RATE_LIMIT_WINDOW_SECONDS: "60"
+  DEFAULT_TOPIC_PREFIX: "gateway"
+  LOG_LEVEL: "INFO"

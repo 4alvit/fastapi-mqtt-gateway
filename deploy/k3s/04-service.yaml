@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-mqtt-gateway
+  labels:
+    app: fastapi-mqtt-gateway
+spec:
+  type: ClusterIP
+  selector:
+    app: fastapi-mqtt-gateway
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
