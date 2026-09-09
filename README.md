@@ -251,6 +251,27 @@ mypy src/
 - Prometheus metrics via `mqtt-exporter` (port 9234)
 - Structured JSON logs to stdout
 
+
+## Deploy to k3s (node `mp`)
+
+Manifests: [`deploy/k3s/`](deploy/k3s/) — Namespace `mqtt-gateway`, Deployment with `nodeSelector: kubernetes.io/hostname: mp`, Service, optional Ingress stub, ConfigMap + example Secret (no real secrets).
+
+```bash
+kubectl create namespace mqtt-gateway --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n mqtt-gateway create secret generic fastapi-mqtt-gateway \
+  --from-literal=JWT_SECRET_KEY="$(openssl rand -hex 32)" \
+  --from-literal=MQTT_USERNAME='' \
+  --from-literal=MQTT_PASSWORD='' \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+kubectl apply -k deploy/k3s
+kubectl -n mqtt-gateway get pods -o wide   # expect NODE=mp
+```
+
+- Image: `ghcr.io/4alvit/fastapi-mqtt-gateway:latest` (workflow `.github/workflows/docker-publish.yml`)
+- Default MQTT broker: `mosquitto.homeassistant.svc.cluster.local:1883`
+- Ingress stub host is a placeholder — edit before enabling TLS with cert-manager
+
 ## License
 
 MIT
