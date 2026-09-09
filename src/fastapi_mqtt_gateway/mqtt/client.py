@@ -92,9 +92,9 @@ class MQTTClient:
             logger.warning("MQTT client already connected")
             return
 
+        # MQTTv5 does not use clean_session (use clean_start via connect properties).
         self._client = mqtt.Client(
             client_id=self.settings.mqtt_client_id,
-            clean_session=self.settings.mqtt_clean_session,
             protocol=mqtt.MQTTv5,
             callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
         )
