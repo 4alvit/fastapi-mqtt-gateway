@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import ssl
+import threading
+from collections import deque
 from collections.abc import Callable
 from typing import Any
 
@@ -22,7 +24,14 @@ class MQTTClient:
         self.settings = settings
         self._client: mqtt.Client | None = None
         self._connected = asyncio.Event()
-        self._message_queue: asyncio.Queue[tuple[str, bytes]] = asyncio.Queue()
+        self._message_queue: asyncio.Queue[tuple[str, bytes]] = asyncio.Queue(
+            maxsize=settings.mqtt_queue_size
+        )
+        self._event_loop: asyncio.AbstractEventLoop | None = None
+        self._pending_messages: deque[tuple[str, bytes]] = deque(maxlen=settings.mqtt_queue_size)
+        self._dispatch_lock = threading.Lock()
+        self._dispatch_pending = False
+        self._subscriptions: dict[str, int] = {}
         self._message_callbacks: list[Callable[[str, bytes], None]] = []
         self._loop_task: asyncio.Task | None = None
         self._shutdown = asyncio.Event()
@@ -35,11 +44,20 @@ class MQTTClient:
         reason_code: ReasonCode,
         properties: Properties | None,
     ) -> None:
-        if reason_code == 0:
+        if self._event_loop is not None:
+            self._event_loop.call_soon_threadsafe(self._connection_changed, reason_code == 0)
+        else:
+            self._connection_changed(reason_code == 0)
+
+    def _connection_changed(self, connected: bool) -> None:
+        if connected:
             logger.info("MQTT connected", broker=self.settings.mqtt_broker_host)
             self._connected.set()
+            if self._client is not None:
+                for topic, qos in self._subscriptions.items():
+                    self._client.subscribe(topic, qos=qos)
         else:
-            logger.error("MQTT connection failed", reason_code=reason_code)
+            logger.error("MQTT connection failed")
             self._connected.clear()
 
     def _on_disconnect(
@@ -51,21 +69,47 @@ class MQTTClient:
         properties: Properties | None,
     ) -> None:
         logger.warning("MQTT disconnected", reason_code=reason_code)
-        self._connected.clear()
+        if self._event_loop is not None:
+            self._event_loop.call_soon_threadsafe(self._connected.clear)
+        else:
+            self._connected.clear()
 
     def _on_message(self, client: mqtt.Client, userdata: Any, msg: mqtt.MQTTMessage) -> None:
-        topic = msg.topic
-        payload = msg.payload
-        logger.debug("MQTT message received", topic=topic, qos=msg.qos, retain=msg.retain)
+        topic, payload = msg.topic, msg.payload
+        if len(payload) > self.settings.max_message_bytes:
+            logger.warning("MQTT payload exceeds message limit", topic=topic)
+            return
+        if self._event_loop is None:
+            self._deliver_message(topic, payload)
+            return
+        # A single scheduled drain bounds both message storage and the number
+        # of cross-thread callbacks waiting on a busy ASGI event loop.
+        with self._dispatch_lock:
+            self._pending_messages.append((topic, payload))
+            if not self._dispatch_pending:
+                self._dispatch_pending = True
+                self._event_loop.call_soon_threadsafe(self._drain_messages)
+
+    def _drain_messages(self) -> None:
+        with self._dispatch_lock:
+            messages = list(self._pending_messages)
+            self._pending_messages.clear()
+            self._dispatch_pending = False
+        for topic, payload in messages:
+            self._deliver_message(topic, payload)
+
+    def _deliver_message(self, topic: str, payload: bytes) -> None:
         try:
             self._message_queue.put_nowait((topic, payload))
         except asyncio.QueueFull:
-            logger.warning("MQTT message queue full, dropping message", topic=topic)
-        for callback in self._message_callbacks:
+            # Keep the newest telemetry; consumer queues have their own policy.
+            self._message_queue.get_nowait()
+            self._message_queue.put_nowait((topic, payload))
+        for callback in tuple(self._message_callbacks):
             try:
                 callback(topic, payload)
-            except Exception as e:
-                logger.error("MQTT message callback error", error=str(e), topic=topic)
+            except Exception:
+                logger.exception("MQTT message callback failed", topic=topic)
 
     def _on_subscribe(
         self,
@@ -92,6 +136,7 @@ class MQTTClient:
             logger.warning("MQTT client already connected")
             return
 
+        self._event_loop = asyncio.get_running_loop()
         # MQTTv5 does not use clean_session (use clean_start via connect properties).
         self._client = mqtt.Client(
             client_id=self.settings.mqtt_client_id,
@@ -155,11 +200,15 @@ class MQTTClient:
             raise RuntimeError("MQTT client not connected")
         logger.info("Subscribing to topic", topic=topic, qos=qos)
         assert self._client is not None  # guaranteed by is_connected()
-        self._client.subscribe(topic, qos=qos)
+        result, _ = self._client.subscribe(topic, qos=qos)
+        if result != mqtt.MQTT_ERR_SUCCESS:
+            raise RuntimeError("MQTT subscription failed")
+        self._subscriptions[topic] = qos
 
     async def unsubscribe(self, topic: str) -> None:
+        self._subscriptions.pop(topic, None)
         if not self.is_connected():
-            raise RuntimeError("MQTT client not connected")
+            return
         logger.info("Unsubscribing from topic", topic=topic)
         assert self._client is not None  # guaranteed by is_connected()
         self._client.unsubscribe(topic)

@@ -10,6 +10,8 @@ from fastapi_mqtt_gateway.mqtt.client import MQTTClient
 
 def _settings() -> Settings:
     return Settings(
+        api_username="testuser",
+        api_password="test-api-password-1234",
         mqtt_username="x",
         mqtt_password="x",
         jwt_secret_key="x" * 32,
@@ -19,11 +21,11 @@ def _settings() -> Settings:
 class TestMQTTClientConnection:
     """Verify connect/disconnect/is_connected behavior."""
 
-    def test_is_connected_false_before_connect(self):
+    def test_is_connected_false_before_connect(self) -> None:
         client = MQTTClient(_settings())
         assert client.is_connected() is False
 
-    def test_disconnect_is_coroutine(self):
+    def test_disconnect_is_coroutine(self) -> None:
         import inspect
 
         client = MQTTClient(_settings())
@@ -33,9 +35,11 @@ class TestMQTTClientConnection:
 class TestBackoffBehavior:
     """Backoff is delegated to paho-mqtt; verify our config feeds it correctly."""
 
-    def test_keepalive_config_passed(self):
+    def test_keepalive_config_passed(self) -> None:
         s = _settings()
         s = Settings(
+            api_username="testuser",
+            api_password="test-api-password-1234",
             mqtt_username="x",
             mqtt_password="x",
             jwt_secret_key="x" * 32,
@@ -43,9 +47,11 @@ class TestBackoffBehavior:
         )
         assert s.mqtt_keepalive == 120
 
-    def test_reconnect_on_disconnect_flag(self):
+    def test_reconnect_on_disconnect_flag(self) -> None:
         # paho-mqtt auto-reconnects when loop_start() is used and clean_session=False
         s = Settings(
+            api_username="testuser",
+            api_password="test-api-password-1234",
             mqtt_username="x",
             mqtt_password="x",
             jwt_secret_key="x" * 32,
@@ -53,8 +59,10 @@ class TestBackoffBehavior:
         )
         assert s.mqtt_clean_session is False
 
-    def test_clean_session_true(self):
+    def test_clean_session_true(self) -> None:
         s = Settings(
+            api_username="testuser",
+            api_password="test-api-password-1234",
             mqtt_username="x",
             mqtt_password="x",
             jwt_secret_key="x" * 32,
@@ -70,14 +78,14 @@ class TestMQTTClientReconnectScenarios:
     ReasonCode API is incompatible with simple int construction in 3.14.
     """
 
-    def test_on_disconnect_clears_event(self):
+    def test_on_disconnect_clears_event(self) -> None:
         client = MQTTClient(_settings())
         client._connected.set()
         assert client._connected.is_set() is True
 
         # Simulate disconnect callback
         rc = MagicMock()
-        rc.__eq__ = lambda self, other: self.value == other  # type: ignore[assignment]
+        rc.configure_mock(**{"__eq__.side_effect": lambda other: other == 0})
         rc.value = 0
 
         flags = MagicMock()
@@ -91,13 +99,13 @@ class TestMQTTClientReconnectScenarios:
         )
         assert client._connected.is_set() is False
 
-    def test_on_connect_sets_event_on_success(self):
+    def test_on_connect_sets_event_on_success(self) -> None:
         client = MQTTClient(_settings())
         assert client._connected.is_set() is False
 
         # reason_code == 0 triggers success path; mock __eq__ so (rc == 0) is True
         rc = MagicMock()
-        rc.__eq__ = lambda self, other: getattr(self, "value", None) == other
+        rc.configure_mock(**{"__eq__.side_effect": lambda other: other == 0})
         rc.value = 0  # success
 
         flags = MagicMock()
@@ -111,7 +119,7 @@ class TestMQTTClientReconnectScenarios:
         )
         assert client._connected.is_set() is True
 
-    def test_on_connect_clears_on_failure(self):
+    def test_on_connect_clears_on_failure(self) -> None:
         client = MQTTClient(_settings())
         client._connected.set()
 
@@ -129,11 +137,11 @@ class TestMQTTClientReconnectScenarios:
         )
         assert client._connected.is_set() is False
 
-    def test_message_queue_init(self):
+    def test_message_queue_init(self) -> None:
         client = MQTTClient(_settings())
         assert client.message_queue_empty() is True
 
-    def test_message_callback_registered(self):
+    def test_message_callback_registered(self) -> None:
         client = MQTTClient(_settings())
         called: list[tuple[str, bytes]] = []
 
@@ -149,7 +157,7 @@ class TestMQTTClientReconnectScenarios:
         assert len(called) == 1
         assert called[0] == ("test/topic", b"hello")
 
-    def test_message_callback_failure_isolated(self):
+    def test_message_callback_failure_isolated(self) -> None:
         """One bad callback must not break others."""
         client = MQTTClient(_settings())
         calls: list[str] = []
@@ -170,7 +178,7 @@ class TestMQTTClientReconnectScenarios:
         )
         assert calls == ["x/y"]
 
-    def test_subscribe_requires_connected(self):
+    def test_subscribe_requires_connected(self) -> None:
         import pytest
 
         client = MQTTClient(_settings())

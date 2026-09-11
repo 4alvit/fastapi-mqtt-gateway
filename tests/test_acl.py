@@ -11,24 +11,24 @@ from fastapi_mqtt_gateway.models import PublishRequest, SubscribeRequest
 class TestTopicValidation:
     """Topic field constraints enforced at Pydantic layer."""
 
-    def test_empty_topic_rejected(self):
+    def test_empty_topic_rejected(self) -> None:
         with pytest.raises(ValidationError) as exc:
             PublishRequest(topic="", payload="x")
         assert "topic" in str(exc.value)
 
-    def test_topic_too_long_rejected(self):
+    def test_topic_too_long_rejected(self) -> None:
         with pytest.raises(ValidationError):
             PublishRequest(topic="a" * 65536, payload="x")
 
-    def test_valid_topic_accepted(self):
+    def test_valid_topic_accepted(self) -> None:
         req = PublishRequest(topic="devices/sensor1/temp", payload="22.5")
         assert req.topic == "devices/sensor1/temp"
 
-    def test_subscribe_empty_topic_rejected(self):
+    def test_subscribe_empty_topic_rejected(self) -> None:
         with pytest.raises(ValidationError):
             SubscribeRequest(topic="", qos=0)
 
-    def test_qos_bounds(self):
+    def test_qos_bounds(self) -> None:
         for qos in [0, 1, 2]:
             req = PublishRequest(topic="x", payload="y", qos=qos)
             assert req.qos == qos

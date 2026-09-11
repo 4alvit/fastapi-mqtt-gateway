@@ -11,6 +11,8 @@ Default MQTT broker: cluster Mosquitto in `homeassistant`
 kubectl create namespace mqtt-gateway --dry-run=client -o yaml | kubectl apply -f -
 kubectl -n mqtt-gateway create secret generic fastapi-mqtt-gateway \
   --from-literal=JWT_SECRET_KEY="$(openssl rand -hex 32)" \
+  --from-literal=API_USERNAME=gateway \
+  --from-literal=API_PASSWORD="$(openssl rand -hex 24)" \
   --from-literal=MQTT_USERNAME='' \
   --from-literal=MQTT_PASSWORD='' \
   --dry-run=client -o yaml | kubectl apply -f -
