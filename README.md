@@ -266,7 +266,7 @@ ruff check src/
 ruff format src/
 
 # Type check
-mypy src/
+mypy .
 ```
 
 ## Security Considerations

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable, Iterator
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 from slowapi import _rate_limit_exceeded_handler
@@ -17,7 +17,7 @@ from fastapi_mqtt_gateway.core.config import Settings, get_settings
 
 
 def _test_settings() -> Settings:
-    return Settings(
+    return Settings(  # type: ignore[call-arg]  # BaseSettings accepts _env_file at runtime.
         _env_file=None,
         api_username="testuser",
         api_password="test-api-password-1234",
@@ -37,7 +37,7 @@ def settings() -> Settings:
 
 
 @pytest.fixture(autouse=True)
-def _isolated_settings(monkeypatch, settings):
+def _isolated_settings(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> Iterator[None]:
     from fastapi_mqtt_gateway import api
     from fastapi_mqtt_gateway.core import auth, config
 
@@ -67,11 +67,11 @@ def mock_mqtt_client() -> MagicMock:
     client.is_connected.return_value = True
     client.message_queue_empty.return_value = True
     client._client.publish.return_value.mid = 42
-    callbacks = []
+    callbacks: list[Callable[[str, bytes], None]] = []
     client.add_message_callback.side_effect = callbacks.append
     client.remove_message_callback.side_effect = callbacks.remove
 
-    def emit(topic, payload):
+    def emit(topic: str, payload: bytes) -> None:
         for callback in tuple(callbacks):
             callback(topic, payload)
 
@@ -80,26 +80,32 @@ def mock_mqtt_client() -> MagicMock:
 
 
 @pytest.fixture
-def app(mock_mqtt_client, settings) -> FastAPI:
+def app(mock_mqtt_client: MagicMock, settings: Settings) -> FastAPI:
     from fastapi_mqtt_gateway.api import limiter, router
     from fastapi_mqtt_gateway.services.mqtt_service import MQTTService
 
     app = FastAPI()
     app.include_router(router)
     app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+    def handle_rate_limit(request: Request, exc: Exception) -> Response:
+        if not isinstance(exc, RateLimitExceeded):
+            raise exc
+        return _rate_limit_exceeded_handler(request, exc)
+
+    app.add_exception_handler(RateLimitExceeded, handle_rate_limit)
     app.state.mqtt_client = mock_mqtt_client
     app.state.mqtt_service = MQTTService(mock_mqtt_client, settings)
     return app
 
 
 @pytest.fixture
-def client(app) -> TestClient:
+def client(app: FastAPI) -> Iterator[TestClient]:
     with TestClient(app) as client:
         yield client
 
 
 @pytest.fixture
-async def async_client(app) -> AsyncGenerator[AsyncClient, None]:
+async def async_client(app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac

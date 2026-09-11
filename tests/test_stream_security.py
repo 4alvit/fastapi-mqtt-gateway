@@ -3,23 +3,25 @@
 import asyncio
 import threading
 import time
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import jwt
 import pytest
+from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 from fastapi_mqtt_gateway.core.auth import verify_token
+from fastapi_mqtt_gateway.core.config import Settings
 from fastapi_mqtt_gateway.core.topics import authorize_topic
 from fastapi_mqtt_gateway.mqtt.client import MQTTClient
 
 
-def test_login_rejects_query_string_credentials(client):
+def test_login_rejects_query_string_credentials(client: TestClient) -> None:
     response = client.post("/auth/token?username=testuser&password=test-api-password-1234")
     assert response.status_code == 422
 
 
-def test_broker_credentials_do_not_grant_api_access(client, settings):
+def test_broker_credentials_do_not_grant_api_access(client: TestClient, settings: Settings) -> None:
     response = client.post(
         "/auth/token", data={"username": settings.mqtt_username, "password": settings.mqtt_password}
     )
@@ -36,12 +38,14 @@ def test_broker_credentials_do_not_grant_api_access(client, settings):
         {"sub": "testuser", "exp": 9999999999, "scopes": "admin"},
     ],
 )
-def test_invalid_claims_fail_closed(settings, claims):
+def test_invalid_claims_fail_closed(settings: Settings, claims: dict[str, object]) -> None:
     token = jwt.encode(claims, settings.jwt_secret_key, algorithm="HS256")
     assert verify_token(token) is None
 
 
-def test_websocket_rejects_invalid_bearer_before_accept(client, mock_mqtt_client):
+def test_websocket_rejects_invalid_bearer_before_accept(
+    client: TestClient, mock_mqtt_client: MagicMock
+) -> None:
     with (
         pytest.raises(WebSocketDisconnect) as exc,
         client.websocket_connect("/ws?topics=devices/%23", headers={"Authorization": "Bearer bad"}),
@@ -51,7 +55,9 @@ def test_websocket_rejects_invalid_bearer_before_accept(client, mock_mqtt_client
     mock_mqtt_client.subscribe.assert_not_called()
 
 
-def test_browser_must_authenticate_before_receiving_data(client, mock_mqtt_client):
+def test_browser_must_authenticate_before_receiving_data(
+    client: TestClient, mock_mqtt_client: MagicMock
+) -> None:
     with client.websocket_connect("/ws?topics=devices/%23") as ws:
         ws.send_json({"type": "auth", "token": "bad"})
         with pytest.raises(WebSocketDisconnect) as exc:
@@ -61,7 +67,9 @@ def test_browser_must_authenticate_before_receiving_data(client, mock_mqtt_clien
     mock_mqtt_client.add_message_callback.assert_not_called()
 
 
-def test_browser_auth_deadline(client, settings, mock_mqtt_client):
+def test_browser_auth_deadline(
+    client: TestClient, settings: Settings, mock_mqtt_client: MagicMock
+) -> None:
     settings.websocket_auth_timeout = 0.02
     with (
         client.websocket_connect("/ws?topics=devices/%23") as ws,
@@ -72,8 +80,10 @@ def test_browser_auth_deadline(client, settings, mock_mqtt_client):
     mock_mqtt_client.subscribe.assert_not_called()
 
 
-def test_browser_auth_frame_and_topic_isolation(client, valid_token, mock_mqtt_client):
-    async def subscribe(topic, qos):
+def test_browser_auth_frame_and_topic_isolation(
+    client: TestClient, valid_token: str, mock_mqtt_client: MagicMock
+) -> None:
+    async def subscribe(topic: str, qos: int) -> None:
         mock_mqtt_client.emit("private/unrequested", b"must not escape")
         mock_mqtt_client.emit("devices/temperature", b"23")
 
@@ -86,7 +96,9 @@ def test_browser_auth_frame_and_topic_isolation(client, valid_token, mock_mqtt_c
 
 
 @pytest.mark.parametrize("topic", ["admin/%23", "sensors/%23", "%23", "devices/invalid%23"])
-def test_ws_rejects_forbidden_and_overbroad_filters(client, auth_headers, mock_mqtt_client, topic):
+def test_ws_rejects_forbidden_and_overbroad_filters(
+    client: TestClient, auth_headers: dict[str, str], mock_mqtt_client: MagicMock, topic: str
+) -> None:
     with (
         pytest.raises(WebSocketDisconnect) as exc,
         client.websocket_connect(f"/ws?topics={topic}", headers=auth_headers),
@@ -96,7 +108,9 @@ def test_ws_rejects_forbidden_and_overbroad_filters(client, auth_headers, mock_m
     mock_mqtt_client.subscribe.assert_not_called()
 
 
-def test_stream_ends_when_token_expires(client, settings, mock_mqtt_client):
+def test_stream_ends_when_token_expires(
+    client: TestClient, settings: Settings, mock_mqtt_client: MagicMock
+) -> None:
     token = jwt.encode(
         {"sub": settings.api_username, "exp": time.time() + 1.5},
         settings.jwt_secret_key,
@@ -115,8 +129,9 @@ def test_stream_ends_when_token_expires(client, settings, mock_mqtt_client):
 
 
 def test_disconnect_preserves_other_websocket_and_rest_owners(
-    client, auth_headers, mock_mqtt_client
-):
+    client: TestClient, auth_headers: dict[str, str], mock_mqtt_client: MagicMock
+) -> None:
+    assert client.portal is not None
     response = client.post("/mqtt/subscribe", json={"topic": "devices/#"}, headers=auth_headers)
     assert response.status_code == 200
     with client.websocket_connect("/ws?topics=devices/%23", headers=auth_headers) as first:
@@ -136,11 +151,14 @@ def test_disconnect_preserves_other_websocket_and_rest_owners(
 
 
 def test_slow_consumer_is_closed_on_queue_overflow(
-    client, settings, auth_headers, mock_mqtt_client
-):
+    client: TestClient,
+    settings: Settings,
+    auth_headers: dict[str, str],
+    mock_mqtt_client: MagicMock,
+) -> None:
     settings.websocket_queue_size = 2
 
-    async def subscribe(topic, qos):
+    async def subscribe(topic: str, qos: int) -> None:
         for _ in range(10):
             mock_mqtt_client.emit("devices/a", b"payload")
 
@@ -155,7 +173,9 @@ def test_slow_consumer_is_closed_on_queue_overflow(
     mock_mqtt_client.unsubscribe.assert_awaited_once_with("devices/#")
 
 
-def test_failed_second_subscription_cleans_up_first(client, auth_headers, mock_mqtt_client):
+def test_failed_second_subscription_cleans_up_first(
+    client: TestClient, auth_headers: dict[str, str], mock_mqtt_client: MagicMock
+) -> None:
     mock_mqtt_client.subscribe.side_effect = [None, RuntimeError("broker unavailable")]
     with (
         client.websocket_connect("/ws?topics=devices/a,devices/b", headers=auth_headers) as ws,
@@ -176,17 +196,19 @@ def test_failed_second_subscription_cleans_up_first(client, auth_headers, mock_m
         ("unsubscribe", {"topic": "admin/#"}),
     ],
 )
-def test_rest_and_ws_share_acl(client, auth_headers, endpoint, body):
+def test_rest_and_ws_share_acl(
+    client: TestClient, auth_headers: dict[str, str], endpoint: str, body: dict[str, str]
+) -> None:
     assert client.post(f"/mqtt/{endpoint}", json=body, headers=auth_headers).status_code == 403
 
 
-def test_default_hash_filter_does_not_include_system_topics(settings):
+def test_default_hash_filter_does_not_include_system_topics(settings: Settings) -> None:
     settings.allowed_topic_patterns = ["#"]
     settings.blocked_topic_patterns = ["$SYS/#", "$share/#"]
     authorize_topic("#", settings, subscription=True)
 
 
-def test_paho_ingress_and_scheduling_are_bounded(settings):
+def test_paho_ingress_and_scheduling_are_bounded(settings: Settings) -> None:
     settings.mqtt_queue_size = 2
     client = MQTTClient(settings)
     loop = Mock()
@@ -200,7 +222,7 @@ def test_paho_ingress_and_scheduling_are_bounded(settings):
     assert client._message_queue.get_nowait()[1] == b"98"
 
 
-def test_oversized_message_never_reaches_callbacks(settings):
+def test_oversized_message_never_reaches_callbacks(settings: Settings) -> None:
     settings.max_message_bytes = 4
     client = MQTTClient(settings)
     callback = Mock()
@@ -210,13 +232,13 @@ def test_oversized_message_never_reaches_callbacks(settings):
     assert client.message_queue_empty()
 
 
-async def test_paho_thread_dispatches_callbacks_on_event_loop(settings):
+async def test_paho_thread_dispatches_callbacks_on_event_loop(settings: Settings) -> None:
     client = MQTTClient(settings)
     client._event_loop = asyncio.get_running_loop()
     received = asyncio.Event()
     callback_threads = []
 
-    def callback(topic, payload):
+    def callback(topic: str, payload: bytes) -> None:
         callback_threads.append(threading.get_ident())
         received.set()
 
@@ -231,15 +253,16 @@ async def test_paho_thread_dispatches_callbacks_on_event_loop(settings):
     assert callback_threads == [threading.get_ident()]
 
 
-async def test_disconnected_release_is_not_resubscribed(settings):
+async def test_disconnected_release_is_not_resubscribed(settings: Settings) -> None:
     client = MQTTClient(settings)
-    client._client = Mock()
-    client._client.is_connected.return_value = True
-    client._client.subscribe.return_value = (0, 1)
+    broker = Mock()
+    client._client = broker
+    broker.is_connected.return_value = True
+    broker.subscribe.return_value = (0, 1)
     client._connection_changed(True)
     await client.subscribe("devices/a")
     client._connection_changed(False)
     await client.unsubscribe("devices/a")
-    client._client.subscribe.reset_mock()
+    broker.subscribe.reset_mock()
     client._connection_changed(True)
-    client._client.subscribe.assert_not_called()
+    broker.subscribe.assert_not_called()
