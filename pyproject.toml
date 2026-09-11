@@ -5,6 +5,7 @@ description = "Production-ready REST/WebSocket → MQTT bridge"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "anyio>=4.0",
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
     "paho-mqtt>=2.0.0",

@@ -4,10 +4,10 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 
+from fastapi_mqtt_gateway.api import limiter
 from fastapi_mqtt_gateway.api import router as api_router
 from fastapi_mqtt_gateway.core.config import get_settings
 from fastapi_mqtt_gateway.mqtt.client import MQTTClient
@@ -23,7 +23,6 @@ structlog.configure(
 
 logger = structlog.get_logger()
 
-limiter = Limiter(key_func=get_remote_address)
 mqtt_client: MQTTClient | None = None
 mqtt_service: MQTTService | None = None
 
@@ -69,6 +68,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    limiter.enabled = settings.rate_limit_enabled
     app.state.limiter = limiter
     app.add_exception_handler(
         RateLimitExceeded,

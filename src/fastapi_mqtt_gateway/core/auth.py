@@ -7,12 +7,7 @@ from pydantic import BaseModel
 
 from fastapi_mqtt_gateway.core.config import get_settings
 
-settings = get_settings()
 security = HTTPBearer(auto_error=False)
-
-ALGORITHM = settings.jwt_algorithm
-SECRET_KEY = settings.jwt_secret_key
-ACCESS_TOKEN_EXPIRE_MINUTES = settings.jwt_access_token_expire_minutes
 
 
 class User(BaseModel):
@@ -21,21 +16,35 @@ class User(BaseModel):
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+    settings = get_settings()
     to_encode = data.copy()
-    if expires_delta:
+    if expires_delta is not None:
         expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(UTC) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(UTC) + timedelta(minutes=settings.jwt_access_token_expire_minutes)
     to_encode.update({"exp": expire})
-    encoded_jwt: str = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt: str = jwt.encode(
+        to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm
+    )
     return encoded_jwt
 
 
 def verify_token(token: str) -> dict | None:
+    settings = get_settings()
     try:
-        payload: dict | None = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload: dict = jwt.decode(
+            token,
+            settings.jwt_secret_key,
+            algorithms=[settings.jwt_algorithm],
+            options={"require": ["exp", "sub"]},
+        )
+        if payload["sub"] != settings.api_username:
+            return None
+        scopes = payload.get("scopes", [])
+        if not isinstance(scopes, list) or not all(isinstance(scope, str) for scope in scopes):
+            return None
         return payload
-    except jwt.InvalidTokenError:
+    except (jwt.InvalidTokenError, ValueError, TypeError, OverflowError):
         return None
 
 

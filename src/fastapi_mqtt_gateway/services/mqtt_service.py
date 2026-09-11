@@ -3,6 +3,7 @@ import asyncio
 import structlog
 
 from fastapi_mqtt_gateway.core.config import Settings
+from fastapi_mqtt_gateway.core.topics import authorize_topic
 from fastapi_mqtt_gateway.models import (
     MQTTMessage,
     PublishRequest,
@@ -26,10 +27,13 @@ class MQTTService:
         self.client = client
         self.settings = settings
         self._subscriptions: dict[str, int] = {}
+        self._owners: dict[str, dict[str, int]] = {}
+        self._subscription_lock = asyncio.Lock()
         self._topic_messages: dict[str, MQTTMessage] = {}
         self._message_counts: dict[str, int] = {}
 
     async def publish(self, request: PublishRequest) -> PublishResponse:
+        authorize_topic(request.topic, self.settings)
         try:
             assert self.client._client is not None
             message_info = self.client._client.publish(
@@ -47,20 +51,49 @@ class MQTTService:
             logger.error("Publish failed", topic=request.topic, error=str(e))
             return PublishResponse(success=False, topic=request.topic)
 
+    async def acquire_subscription(self, topic: str, qos: int, owner: str) -> None:
+        authorize_topic(topic, self.settings, subscription=True)
+        async with self._subscription_lock:
+            owners = dict(self._owners.get(topic, {}))
+            owners[owner] = qos
+            effective_qos = max(owners.values())
+            if topic not in self._subscriptions or effective_qos != self._subscriptions[topic]:
+                await self.client.subscribe(topic, effective_qos)
+            self._owners[topic] = owners
+            self._subscriptions[topic] = effective_qos
+
+    async def release_subscription(self, topic: str, owner: str) -> None:
+        async with self._subscription_lock:
+            owners = self._owners.get(topic)
+            if not owners or owner not in owners:
+                return
+            if len(owners) > 1:
+                del owners[owner]
+                return
+            # Remove desired state even while disconnected; reconnect must not
+            # resurrect subscriptions whose last consumer has gone away.
+            try:
+                await self.client.unsubscribe(topic)
+            finally:
+                self._owners.pop(topic, None)
+                self._subscriptions.pop(topic, None)
+
     async def subscribe(self, request: SubscribeRequest) -> SubscribeResponse:
-        await self.client.subscribe(request.topic, request.qos)
-        self._subscriptions[request.topic] = request.qos
-        self._message_counts[request.topic] = 0
+        await self.acquire_subscription(request.topic, request.qos, "rest")
         return SubscribeResponse(success=True, topic=request.topic, qos=request.qos)
 
     async def unsubscribe(self, request: UnsubscribeRequest) -> UnsubscribeResponse:
-        await self.client.unsubscribe(request.topic)
-        self._subscriptions.pop(request.topic, None)
+        authorize_topic(request.topic, self.settings, subscription=True)
+        await self.release_subscription(request.topic, "rest")
         return UnsubscribeResponse(success=True, topic=request.topic)
 
     async def query_retained(self, request: RetainedQueryRequest) -> RetainedQueryResponse:
+        authorize_topic(request.topic, self.settings)
+        from uuid import uuid4
+
+        owner = f"retained:{uuid4()}"
         try:
-            await self.client.subscribe(request.topic, qos=0)
+            await self.acquire_subscription(request.topic, 0, owner)
             await asyncio.sleep(0.1)
 
             if not self.client.message_queue_empty():
@@ -84,9 +117,12 @@ class MQTTService:
             return RetainedQueryResponse(success=False, error="Query timeout")
         except Exception as e:
             logger.error("Retained query failed", topic=request.topic, error=str(e))
-            return RetainedQueryResponse(success=False, error=str(e))
+            return RetainedQueryResponse(success=False, error="Retained query failed")
+        finally:
+            await self.release_subscription(request.topic, owner)
 
     async def get_topic_info(self, topic: str) -> TopicInfo:
+        authorize_topic(topic, self.settings, subscription=True)
         count = self._message_counts.get(topic, 0)
         last_msg = self._topic_messages.get(topic)
         return TopicInfo(topic=topic, message_count=count, last_message=last_msg)

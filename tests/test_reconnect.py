@@ -10,6 +10,8 @@ from fastapi_mqtt_gateway.mqtt.client import MQTTClient
 
 def _settings() -> Settings:
     return Settings(
+        api_username="testuser",
+        api_password="test-api-password-1234",
         mqtt_username="x",
         mqtt_password="x",
         jwt_secret_key="x" * 32,
@@ -36,6 +38,8 @@ class TestBackoffBehavior:
     def test_keepalive_config_passed(self):
         s = _settings()
         s = Settings(
+            api_username="testuser",
+            api_password="test-api-password-1234",
             mqtt_username="x",
             mqtt_password="x",
             jwt_secret_key="x" * 32,
@@ -46,6 +50,8 @@ class TestBackoffBehavior:
     def test_reconnect_on_disconnect_flag(self):
         # paho-mqtt auto-reconnects when loop_start() is used and clean_session=False
         s = Settings(
+            api_username="testuser",
+            api_password="test-api-password-1234",
             mqtt_username="x",
             mqtt_password="x",
             jwt_secret_key="x" * 32,
@@ -55,6 +61,8 @@ class TestBackoffBehavior:
 
     def test_clean_session_true(self):
         s = Settings(
+            api_username="testuser",
+            api_password="test-api-password-1234",
             mqtt_username="x",
             mqtt_password="x",
             jwt_secret_key="x" * 32,

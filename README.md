@@ -97,7 +97,9 @@ graph LR
 git clone <repo> fastapi-mqtt-gateway
 cd fastapi-mqtt-gateway
 cp .env.example .env
-# Edit .env with your settings
+# Set API_USERNAME, a random API_PASSWORD (at least 16 characters), and
+# JWT_SECRET_KEY (at least 32 characters). Use openssl rand -hex 32 for secrets.
+# Empty values and known placeholders prevent startup.
 
 # Start services
 docker-compose up -d
@@ -128,6 +130,8 @@ uvicorn fastapi_mqtt_gateway.main:app --reload --host 0.0.0.0 --port 8000
 | `MQTT_USERNAME` | `` | MQTT username (optional) |
 | `MQTT_PASSWORD` | `` | MQTT password (optional) |
 | `MQTT_USE_TLS` | `false` | Enable TLS |
+| `API_USERNAME` | *(required)* | Single API principal, separate from MQTT login |
+| `API_PASSWORD` | *(required)* | API password (min 16 characters) |
 | `JWT_SECRET_KEY` | *(required)* | JWT signing secret (min 32 chars) |
 | `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | Access token TTL |
 | `RATE_LIMIT_ENABLED` | `true` | Enable rate limiting |
@@ -175,13 +179,42 @@ curl -X POST http://localhost:8000/mqtt/retained \
 
 ```javascript
 const ws = new WebSocket('ws://localhost:8000/ws?topics=gateway/sensors/+,gateway/+/status');
+// Obtain accessToken from POST /auth/token using a form body over HTTPS.
+ws.onopen = () => ws.send(JSON.stringify({ type: 'auth', token: accessToken }));
 
 ws.onmessage = (event) => {
   const msg = JSON.parse(event.data);
-  if (msg.type === 'ping') return;
+  if (msg.type === 'ping' || msg.type === 'ready') return;
   console.log(`${msg.topic}: ${msg.payload}`);
 };
 ```
+
+Native clients can send `Authorization: Bearer <token>` in the upgrade request.
+Browser clients must send the authentication frame within five seconds. No MQTT
+subscription or data delivery occurs before authentication. Tokens are never
+accepted in URLs. Streams close when the token expires; obtain a fresh token and
+reconnect. A `ready` frame confirms that subscriptions have been registered.
+
+ACL rules apply to REST and WebSocket operations. A subscription must fit wholly
+inside one allowed filter and must not overlap a blocked filter. For example,
+with `sensors/private/#` blocked, request `sensors/public/#` instead of `sensors/#`.
+Shared subscriptions are not supported. Overlapping subscriptions are owned per
+connection, so disconnecting one consumer does not unsubscribe the others.
+
+Slow clients close with code 1013 when their bounded queue fills or a send times
+out. `WEBSOCKET_QUEUE_SIZE` (default 64), `MQTT_QUEUE_SIZE` (default 256), and
+`MAX_MESSAGE_BYTES` (default 1048576) bound buffering. The broker ingress keeps
+newest messages on overflow; this is a telemetry stream, not a durable event log.
+
+### Upgrade from the previous authentication defaults
+
+Set `API_USERNAME`, `API_PASSWORD`, and a unique `JWT_SECRET_KEY` before deploying.
+The broker username/password no longer authorize API calls. Login requires a
+form body; query-string credentials are rejected. Previously issued tokens for
+another username or without an expiry are rejected. Upgrade WebSocket clients to
+send authentication and handle `ready`/`ping` frames before enabling this version.
+The API uses a single configured principal and a shared topic ACL; arbitrary
+per-user roles are not advertised or inferred from token scopes.
 
 ## Project Structure
 
@@ -238,7 +271,7 @@ mypy src/
 
 ## Security Considerations
 
-- Change `JWT_SECRET_KEY` in production (min 32 chars)
+- Configure a unique `JWT_SECRET_KEY` (min 32 chars) and separate API credentials before startup
 - Enable `MQTT_USE_TLS` with valid certificates
 - Configure `ALLOWED_TOPIC_PATTERNS` / `BLOCKED_TOPIC_PATTERNS`
 - Use strong passwords for MQTT broker authentication
@@ -260,6 +293,8 @@ Manifests: [`deploy/k3s/`](deploy/k3s/) — Namespace `mqtt-gateway`, Deployment
 kubectl create namespace mqtt-gateway --dry-run=client -o yaml | kubectl apply -f -
 kubectl -n mqtt-gateway create secret generic fastapi-mqtt-gateway \
   --from-literal=JWT_SECRET_KEY="$(openssl rand -hex 32)" \
+  --from-literal=API_USERNAME=gateway \
+  --from-literal=API_PASSWORD="$(openssl rand -hex 24)" \
   --from-literal=MQTT_USERNAME='' \
   --from-literal=MQTT_PASSWORD='' \
   --dry-run=client -o yaml | kubectl apply -f -

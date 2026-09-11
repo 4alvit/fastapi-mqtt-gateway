@@ -16,12 +16,12 @@ from fastapi_mqtt_gateway.core.auth import (
 )
 from fastapi_mqtt_gateway.core.config import Settings
 
-pytestmark = pytest.mark.asyncio
-
 
 class TestLogin:
     def test_login_success(self, client):
-        resp = client.post("/auth/token?username=testuser&password=testpass")
+        resp = client.post(
+            "/auth/token", data={"username": "testuser", "password": "test-api-password-1234"}
+        )
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert "access_token" in data
@@ -29,16 +29,18 @@ class TestLogin:
         assert data["expires_in"] == 30 * 60
 
     def test_login_wrong_password(self, client):
-        resp = client.post("/auth/token?username=testuser&password=wrong")
+        resp = client.post("/auth/token", data={"username": "testuser", "password": "wrong"})
         assert resp.status_code == 401
         assert resp.json()["detail"] == "Invalid credentials"
 
     def test_login_wrong_username(self, client):
-        resp = client.post("/auth/token?username=nobody&password=testpass")
+        resp = client.post(
+            "/auth/token", data={"username": "nobody", "password": "test-api-password-1234"}
+        )
         assert resp.status_code == 401
 
     def test_login_missing_password(self, client):
-        resp = client.post("/auth/token?username=testuser")
+        resp = client.post("/auth/token", data={"username": "testuser"})
         assert resp.status_code == 422
 
 
@@ -71,31 +73,28 @@ class TestProtectedEndpoint:
         assert resp.status_code == 401
 
     def test_valid_token_passes_auth(self, client, auth_headers):
-        # Skip: slowapi @limiter.limit decorator breaks Starlette 1.x DI for
-        # the publish route; we verify the auth gate via the 401 tests above.
-        # The JWT validation itself is exercised in TestVerifyToken and
-        # TestGetCurrentUser.test_valid_token_returns_user.
-        pytest.skip("slowapi + starlette 1.x DI conflict; auth path covered by 401 tests")
+        resp = client.post(
+            "/mqtt/publish", json={"topic": "devices/x", "payload": "y"}, headers=auth_headers
+        )
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
 
 
 class TestCreateAccessToken:
-    def test_round_trip(self):
-        # create_access_token uses module-level SECRET_KEY from auth.py import time
-        from fastapi_mqtt_gateway.core.auth import ALGORITHM, SECRET_KEY
+    def test_round_trip(self, settings):
 
         token = create_access_token(data={"sub": "alice"})
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
         assert payload["sub"] == "alice"
         assert "exp" in payload
 
-    def test_custom_expires_delta(self):
-        from fastapi_mqtt_gateway.core.auth import ALGORITHM, SECRET_KEY
+    def test_custom_expires_delta(self, settings):
 
         token = create_access_token(
             data={"sub": "bob"},
             expires_delta=timedelta(minutes=5),
         )
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
         exp = datetime.fromtimestamp(payload["exp"], UTC)
         delta = (exp - datetime.now(UTC)).total_seconds()
         assert 4 * 60 < delta < 6 * 60
@@ -135,8 +134,17 @@ class TestGetCurrentUser:
 
 
 class TestSettingsDefaults:
-    """JWT secret default must be >= 32 chars (pydantic validator)."""
+    def test_missing_credentials_rejected(self):
+        from pydantic import ValidationError
 
-    def test_jwt_secret_min_length_32(self):
-        s = Settings()
-        assert len(s.jwt_secret_key) >= 32
+        with pytest.raises(ValidationError):
+            Settings(_env_file=None)
+
+    @pytest.mark.parametrize("value", ["", " " * 32, "change-me-in-production-use-strong-secret"])
+    def test_placeholder_secret_rejected(self, value):
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            Settings(
+                _env_file=None, api_username="admin", api_password="a" * 20, jwt_secret_key=value
+            )
