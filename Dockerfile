@@ -1,14 +1,16 @@
 FROM python:3.14-slim@sha256:cad9a2c871761c413caa6fdd6441c783451e740a48aaeba60ae62a8b53525ef6 AS builder
 
+COPY --from=ghcr.io/astral-sh/uv:0.12.7 /uv /usr/local/bin/uv
+
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml .
+COPY pyproject.toml uv.lock README.md ./
 COPY src/ ./src/
-RUN pip install --no-cache-dir --prefix=/install -e .
+RUN uv sync --locked --no-dev --no-editable
 
 FROM python:3.14-slim@sha256:cad9a2c871761c413caa6fdd6441c783451e740a48aaeba60ae62a8b53525ef6
 
@@ -16,7 +18,8 @@ WORKDIR /app
 
 RUN groupadd --system app && useradd --system --gid app --no-create-home app
 
-COPY --from=builder /install /usr/local
+COPY --from=builder /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
 COPY --from=builder /app/src ./src
 
 USER app

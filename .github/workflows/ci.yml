@@ -1,28 +1,25 @@
 name: CI
-
-on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '**.json'
-  pull_request:
-    branches: [main]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '**.json'
 permissions:
   contents: read
-
 jobs:
   ci:
     name: CI
-    uses: victron-venus/venus-os-ci-toolkit/.github/workflows/python-ci.yml@5b18667880c7a0154b7c7e6686042eff5f47cdb7
-    with:
-      python-version: '3.11'
-      run-tests: true
-      # Coverage gate lowered until broader unit coverage exists.
-      # Tests for auth, ACL, topic validation, MQTT reconnect are in place.
-      coverage-threshold: 0
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+      with:
+        python-version: '3.12'
+    - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d
+      with:
+        version: 0.12.7
+    - run: bash scripts/ci.sh
+'on':
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+  workflow_call: {}
