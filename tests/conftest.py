@@ -66,7 +66,7 @@ def mock_mqtt_client() -> MagicMock:
     client.unsubscribe = AsyncMock()
     client.is_connected.return_value = True
     client.message_queue_empty.return_value = True
-    client._client.publish.return_value.mid = 42
+    client.publish = AsyncMock(return_value=42)
     callbacks: list[Callable[[str, bytes], None]] = []
     client.add_message_callback.side_effect = callbacks.append
     client.remove_message_callback.side_effect = callbacks.remove

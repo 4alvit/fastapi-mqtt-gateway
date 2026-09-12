@@ -6,6 +6,7 @@ import ssl
 import threading
 from collections import deque
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 import paho.mqtt.client as mqtt
@@ -19,6 +20,14 @@ from fastapi_mqtt_gateway.core.config import Settings
 logger = structlog.get_logger()
 
 
+@dataclass(frozen=True)
+class ReceivedMessage:
+    topic: str
+    payload: bytes
+    qos: int
+    retain: bool
+
+
 class MQTTClient:
     def __init__(self, settings: Settings):
         self.settings = settings
@@ -28,11 +37,12 @@ class MQTTClient:
             maxsize=settings.mqtt_queue_size
         )
         self._event_loop: asyncio.AbstractEventLoop | None = None
-        self._pending_messages: deque[tuple[str, bytes]] = deque(maxlen=settings.mqtt_queue_size)
+        self._pending_messages: deque[ReceivedMessage] = deque(maxlen=settings.mqtt_queue_size)
         self._dispatch_lock = threading.Lock()
         self._dispatch_pending = False
         self._subscriptions: dict[str, int] = {}
         self._message_callbacks: list[Callable[[str, bytes], None]] = []
+        self._packet_callbacks: list[Callable[[ReceivedMessage], None]] = []
         self._loop_task: asyncio.Task | None = None
         self._shutdown = asyncio.Event()
 
@@ -80,12 +90,12 @@ class MQTTClient:
             logger.warning("MQTT payload exceeds message limit", topic=topic)
             return
         if self._event_loop is None:
-            self._deliver_message(topic, payload)
+            self._deliver_message(topic, payload, msg.qos, msg.retain)
             return
         # A single scheduled drain bounds both message storage and the number
         # of cross-thread callbacks waiting on a busy ASGI event loop.
         with self._dispatch_lock:
-            self._pending_messages.append((topic, payload))
+            self._pending_messages.append(ReceivedMessage(topic, payload, msg.qos, msg.retain))
             if not self._dispatch_pending:
                 self._dispatch_pending = True
                 self._event_loop.call_soon_threadsafe(self._drain_messages)
@@ -95,16 +105,24 @@ class MQTTClient:
             messages = list(self._pending_messages)
             self._pending_messages.clear()
             self._dispatch_pending = False
-        for topic, payload in messages:
-            self._deliver_message(topic, payload)
+        for message in messages:
+            self._deliver_message(message.topic, message.payload, message.qos, message.retain)
 
-    def _deliver_message(self, topic: str, payload: bytes) -> None:
+    def _deliver_message(
+        self, topic: str, payload: bytes, qos: int = 0, retain: bool = False
+    ) -> None:
         try:
             self._message_queue.put_nowait((topic, payload))
         except asyncio.QueueFull:
             # Keep the newest telemetry; consumer queues have their own policy.
             self._message_queue.get_nowait()
             self._message_queue.put_nowait((topic, payload))
+        message = ReceivedMessage(topic, payload, qos, retain)
+        for packet_callback in tuple(self._packet_callbacks):
+            try:
+                packet_callback(message)
+            except Exception:
+                logger.exception("MQTT packet callback failed", topic=topic)
         for callback in tuple(self._message_callbacks):
             try:
                 callback(topic, payload)
@@ -130,6 +148,13 @@ class MQTTClient:
     def remove_message_callback(self, callback: Callable[[str, bytes], None]) -> None:
         if callback in self._message_callbacks:
             self._message_callbacks.remove(callback)
+
+    def add_packet_callback(self, callback: Callable[[ReceivedMessage], None]) -> None:
+        self._packet_callbacks.append(callback)
+
+    def remove_packet_callback(self, callback: Callable[[ReceivedMessage], None]) -> None:
+        if callback in self._packet_callbacks:
+            self._packet_callbacks.remove(callback)
 
     async def connect(self) -> None:
         if self._client and self._client.is_connected():
@@ -219,14 +244,17 @@ class MQTTClient:
         payload: bytes | str,
         qos: int = 0,
         retain: bool = False,
-    ) -> None:
+    ) -> int:
         if not self.is_connected():
             raise RuntimeError("MQTT client not connected")
         if isinstance(payload, str):
             payload = payload.encode()
         logger.debug("Publishing message", topic=topic, qos=qos, retain=retain)
         assert self._client is not None  # guaranteed by is_connected()
-        self._client.publish(topic, payload, qos=qos, retain=retain)
+        info = self._client.publish(topic, payload, qos=qos, retain=retain)
+        if info.rc != mqtt.MQTT_ERR_SUCCESS:
+            raise RuntimeError(f"MQTT publish rejected: {mqtt.error_string(info.rc)}")
+        return info.mid
 
     async def get_message(self) -> tuple[str, bytes]:
         return await self._message_queue.get()
