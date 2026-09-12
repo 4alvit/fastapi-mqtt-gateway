@@ -9,6 +9,12 @@
 
 Production-ready REST/WebSocket → MQTT bridge with authentication, rate limiting, and real-time streaming.
 
+<!-- ci-release-process:start -->
+## Release process
+
+See the [release strategy](RELEASING.md) for validation, nightly, beta, RC and stable promotion rules, and the [operator runbook](docs/release-workflow.md) for local commands.
+<!-- ci-release-process:end -->
+
 ## Features
 
 - **REST API**: Publish, subscribe, unsubscribe, query retained messages
@@ -315,7 +321,7 @@ kubectl apply -k deploy/k3s
 kubectl -n mqtt-gateway get pods -o wide   # expect NODE=mp
 ```
 
-- Image: `ghcr.io/4alvit/fastapi-mqtt-gateway:latest` (workflow `.github/workflows/docker-publish.yml`)
+- Image: `ghcr.io/4alvit/fastapi-mqtt-gateway`. Registry publication promotes approved stable OCI assets; see the [operator runbook](docs/release-workflow.md).
 - Default MQTT broker: `mosquitto.homeassistant.svc.cluster.local:1883`
 - Ingress stub host is a placeholder — edit before enabling TLS with cert-manager
 

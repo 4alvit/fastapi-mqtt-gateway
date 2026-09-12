@@ -19,5 +19,6 @@
   ],
   "container_assets": {
     "fastapi-mqtt-gateway-container.oci.tar": "ghcr.io/4alvit/fastapi-mqtt-gateway"
-  }
+  },
+  "visibility": "public"
 }
