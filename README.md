@@ -149,6 +149,11 @@ curl -X POST http://localhost:8000/auth/token \
 
 ### Publish Message
 
+A successful publish response means the MQTT client accepted the message for
+transmission, not that the broker or subscriber acknowledged it. Disconnected
+clients and rejected publishes return `success: false`; callers can retry according
+to their command semantics.
+
 ```bash
 TOKEN=<your-token>
 curl -X POST http://localhost:8000/mqtt/publish \
@@ -167,6 +172,13 @@ curl -X POST http://localhost:8000/mqtt/subscribe \
 ```
 
 ### Query Retained Message
+
+Retained queries wait up to `RETAINED_QUERY_TIMEOUT` seconds (default: 5) for a
+retained response on the exact requested topic. Unrelated topics and live messages
+do not satisfy the query. Concurrent queries are independent, and existing REST
+or WebSocket subscriptions remain active when a query finishes or is cancelled.
+The response preserves the received MQTT QoS and retain flag; timeout returns
+`success: false` with `error: "Query timeout"`.
 
 ```bash
 curl -X POST http://localhost:8000/mqtt/retained \

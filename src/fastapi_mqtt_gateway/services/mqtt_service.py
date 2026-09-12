@@ -1,4 +1,5 @@
 import asyncio
+from uuid import uuid4
 
 import structlog
 
@@ -17,7 +18,7 @@ from fastapi_mqtt_gateway.models import (
     UnsubscribeRequest,
     UnsubscribeResponse,
 )
-from fastapi_mqtt_gateway.mqtt.client import MQTTClient
+from fastapi_mqtt_gateway.mqtt.client import MQTTClient, ReceivedMessage
 
 logger = structlog.get_logger()
 
@@ -35,8 +36,7 @@ class MQTTService:
     async def publish(self, request: PublishRequest) -> PublishResponse:
         authorize_topic(request.topic, self.settings)
         try:
-            assert self.client._client is not None
-            message_info = self.client._client.publish(
+            message_id = await self.client.publish(
                 request.topic,
                 request.payload.encode() if isinstance(request.payload, str) else request.payload,
                 qos=request.qos,
@@ -44,20 +44,26 @@ class MQTTService:
             )
             return PublishResponse(
                 success=True,
-                message_id=message_info.mid,
+                message_id=message_id,
                 topic=request.topic,
             )
         except Exception as e:
             logger.error("Publish failed", topic=request.topic, error=str(e))
             return PublishResponse(success=False, topic=request.topic)
 
-    async def acquire_subscription(self, topic: str, qos: int, owner: str) -> None:
+    async def acquire_subscription(
+        self, topic: str, qos: int, owner: str, *, refresh: bool = False
+    ) -> None:
         authorize_topic(topic, self.settings, subscription=True)
         async with self._subscription_lock:
             owners = dict(self._owners.get(topic, {}))
             owners[owner] = qos
             effective_qos = max(owners.values())
-            if topic not in self._subscriptions or effective_qos != self._subscriptions[topic]:
+            if (
+                refresh
+                or topic not in self._subscriptions
+                or effective_qos != self._subscriptions[topic]
+            ):
                 await self.client.subscribe(topic, effective_qos)
             self._owners[topic] = owners
             self._subscriptions[topic] = effective_qos
@@ -89,36 +95,38 @@ class MQTTService:
 
     async def query_retained(self, request: RetainedQueryRequest) -> RetainedQueryResponse:
         authorize_topic(request.topic, self.settings)
-        from uuid import uuid4
-
         owner = f"retained:{uuid4()}"
+        future: asyncio.Future[ReceivedMessage] = asyncio.get_running_loop().create_future()
+
+        def receive(message: ReceivedMessage) -> None:
+            if message.topic == request.topic and message.retain and not future.done():
+                future.set_result(message)
+
+        # Register before SUBSCRIBE: the retained response may arrive immediately.
+        self.client.add_packet_callback(receive)
         try:
-            await self.acquire_subscription(request.topic, 0, owner)
-            await asyncio.sleep(0.1)
-
-            if not self.client.message_queue_empty():
-                topic, payload = await asyncio.wait_for(
-                    self.client.get_message(),
-                    timeout=self.settings.retained_query_timeout,
-                )
-                if topic == request.topic:
-                    return RetainedQueryResponse(
-                        success=True,
-                        message=RetainedMessage(
-                            topic=topic,
-                            payload=payload.decode() if isinstance(payload, bytes) else payload,
-                            qos=0,
-                            retain=True,
-                        ),
-                    )
-
-            return RetainedQueryResponse(success=False, error="No retained message found")
+            async with asyncio.timeout(self.settings.retained_query_timeout):
+                # Re-subscribe even when another owner already holds this topic:
+                # MQTT's default retain handling requests its current retained value.
+                await self.acquire_subscription(request.topic, 0, owner, refresh=True)
+                message = await future
+            return RetainedQueryResponse(
+                success=True,
+                message=RetainedMessage(
+                    topic=message.topic,
+                    payload=message.payload.decode(),
+                    qos=message.qos,
+                    retain=message.retain,
+                ),
+            )
         except TimeoutError:
             return RetainedQueryResponse(success=False, error="Query timeout")
         except Exception as e:
             logger.error("Retained query failed", topic=request.topic, error=str(e))
             return RetainedQueryResponse(success=False, error="Retained query failed")
         finally:
+            self.client.remove_packet_callback(receive)
+            future.cancel()
             await self.release_subscription(request.topic, owner)
 
     async def get_topic_info(self, topic: str) -> TopicInfo:
