@@ -1,0 +1,15 @@
+{
+  "required": [
+    "src",
+    "pyproject.toml",
+    "uv.lock",
+    "Dockerfile"
+  ],
+  "containers": {
+    "fastapi-mqtt-gateway-container.oci.tar": {
+      "context": ".",
+      "dockerfile": "Dockerfile",
+      "platforms": "linux/amd64,linux/arm64"
+    }
+  }
+}
