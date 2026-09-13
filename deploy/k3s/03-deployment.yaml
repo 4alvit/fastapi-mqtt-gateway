@@ -14,12 +14,23 @@ spec:
       labels:
         app: fastapi-mqtt-gateway
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       nodeSelector:
         kubernetes.io/hostname: mp
       containers:
         - name: gateway
           image: ghcr.io/4alvit/fastapi-mqtt-gateway:latest
           imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
           ports:
             - name: http
               containerPort: 8000
@@ -28,6 +39,21 @@ spec:
                 name: fastapi-mqtt-gateway
             - secretRef:
                 name: fastapi-mqtt-gateway
+          # TTLs are ordinary configuration; retain the application's environment API.
+          env:
+            - name: JWT_ACCESS_TOKEN_EXPIRE_MINUTES
+              valueFrom:
+                configMapKeyRef:
+                  name: fastapi-mqtt-gateway
+                  key: ACCESS_TTL_MINUTES
+            - name: JWT_REFRESH_TOKEN_EXPIRE_DAYS
+              valueFrom:
+                configMapKeyRef:
+                  name: fastapi-mqtt-gateway
+                  key: REFRESH_TTL_DAYS
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           readinessProbe:
             httpGet:
               path: /health
@@ -46,3 +72,6 @@ spec:
               memory: 128Mi
             limits:
               memory: 512Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}

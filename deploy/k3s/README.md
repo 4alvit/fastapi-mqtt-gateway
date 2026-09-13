@@ -22,3 +22,10 @@ kubectl -n mqtt-gateway get pods -o wide   # expect NODE=mp
 ```
 
 Image: `ghcr.io/4alvit/fastapi-mqtt-gateway:latest` (`.github/workflows/docker-publish.yml`).
+
+The container runs as UID/GID 10001 with a read-only root filesystem and a
+separate writable `/tmp` volume. Deploy the updated image together with these
+manifests. Token lifetime settings use `ACCESS_TTL_MINUTES` and
+`REFRESH_TTL_DAYS` in the ConfigMap; the Deployment maps them to the existing
+`JWT_ACCESS_TOKEN_EXPIRE_MINUTES` and `JWT_REFRESH_TOKEN_EXPIRE_DAYS` application
+environment variables. Carry over any customized TTL values when updating.
