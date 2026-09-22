@@ -6,7 +6,8 @@
   "validation_workflows": [
     "ci.yml",
     "codeql.yml",
-    "release-security.yml"
+    "release-security.yml",
+    "dependency-review.yml"
   ],
   "artifact_pattern": "release-assets*",
   "version_file": "pyproject.toml",
@@ -20,5 +21,6 @@
   "container_assets": {
     "fastapi-mqtt-gateway-container.oci.tar": "ghcr.io/4alvit/fastapi-mqtt-gateway"
   },
-  "visibility": "public"
+  "visibility": "public",
+  "single_entry_ci": true
 }
