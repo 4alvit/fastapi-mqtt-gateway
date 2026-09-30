@@ -23,29 +23,21 @@ structlog.configure(
 
 logger = structlog.get_logger()
 
-mqtt_client: MQTTClient | None = None
-mqtt_service: MQTTService | None = None
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    global mqtt_client, mqtt_service
     settings = get_settings()
 
     logger.info("Starting application", version=settings.app_version)
 
     mqtt_client = MQTTClient(settings)
-    await mqtt_client.connect()
-
-    mqtt_service = MQTTService(mqtt_client, settings)
-
-    app.state.mqtt_client = mqtt_client
-    app.state.mqtt_service = mqtt_service
-
-    yield
-
-    logger.info("Shutting down application")
-    if mqtt_client:
+    try:
+        await mqtt_client.connect()
+        app.state.mqtt_client = mqtt_client
+        app.state.mqtt_service = MQTTService(mqtt_client, settings)
+        yield
+    finally:
+        logger.info("Shutting down application")
         await mqtt_client.disconnect()
 
 
