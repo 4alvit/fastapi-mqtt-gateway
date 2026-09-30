@@ -211,10 +211,22 @@ class MQTTClient:
             with contextlib.suppress(asyncio.CancelledError):
                 await self._loop_task
 
-        if self._client:
-            self._client.loop_stop()
-            self._client.disconnect()
-            self._connected.clear()
+        client = self._client
+        if client:
+            # Paho joins its network thread here; let other ASGI tasks finish
+            # while a pending network operation is winding down.
+            stopping = asyncio.create_task(asyncio.to_thread(client.loop_stop))
+            try:
+                try:
+                    await asyncio.shield(stopping)
+                except asyncio.CancelledError:
+                    await stopping
+                    raise
+            finally:
+                try:
+                    client.disconnect()
+                finally:
+                    self._connected.clear()
             logger.info("MQTT disconnected")
 
     def is_connected(self) -> bool:
