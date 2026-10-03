@@ -19,6 +19,7 @@ SHA = "a" * 40
 
 
 def complete():
+    """Build a complete result, including upstream disabled checks."""
     return {
         "repo": {"name": f"github.com/{REPO}", "commit": SHA},
         "scorecard": guard.VERSION.copy(),
@@ -30,6 +31,8 @@ def complete():
 
 
 class ScorecardJSONTests(unittest.TestCase):
+    """Preserve findings while rejecting incomplete or unrelated scans."""
+
     def test_complete_clean_and_failing_checks_pass(self):
         for score in (0, 4, 10):
             result = complete()
@@ -95,9 +98,7 @@ class ScorecardJSONTests(unittest.TestCase):
                 (root / "results.sarif").write_text("stale")
                 with (
                     patch.object(guard, "ROOT", root),
-                    patch.dict(
-                        "os.environ", {"GITHUB_REPOSITORY": REPO, "GITHUB_SHA": SHA}
-                    ),
+                    patch.dict("os.environ", {"GITHUB_REPOSITORY": REPO, "GITHUB_SHA": SHA}),
                     self.assertRaises((OSError, TypeError, ValueError)),
                 ):
                     guard.main()
@@ -110,9 +111,7 @@ class ScorecardJSONTests(unittest.TestCase):
             (root / "results.sarif").write_text("original report")
             with (
                 patch.object(guard, "ROOT", root),
-                patch.dict(
-                    "os.environ", {"GITHUB_REPOSITORY": REPO, "GITHUB_SHA": SHA}
-                ),
+                patch.dict("os.environ", {"GITHUB_REPOSITORY": REPO, "GITHUB_SHA": SHA}),
             ):
                 guard.main()
             self.assertEqual((root / "results.sarif").read_text(), "original report")
