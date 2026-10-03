@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = "FastAPI MQTT Gateway"
-    app_version: str = "0.1.2"
+    app_version: str = "0.1.3"
     debug: bool = False
 
     # Server
