@@ -17,17 +17,22 @@ needed. The ClusterIP Service is available without an Ingress.
 
 ```bash
 kubectl create namespace mqtt-gateway --dry-run=client -o yaml | kubectl apply -f -
+# Initial installation only: create fails if the Secret already exists.
+# Supply broker credentials here when the broker requires authentication.
 kubectl -n mqtt-gateway create secret generic fastapi-mqtt-gateway \
   --from-literal=JWT_SECRET_KEY="$(openssl rand -hex 32)" \
   --from-literal=API_USERNAME=gateway \
   --from-literal=API_PASSWORD="$(openssl rand -hex 24)" \
   --from-literal=MQTT_USERNAME='' \
-  --from-literal=MQTT_PASSWORD='' \
-  --dry-run=client -o yaml | kubectl apply -f -
+  --from-literal=MQTT_PASSWORD=''
 
 kubectl apply -k deploy/k3s
 kubectl -n mqtt-gateway get pods -o wide   # expect NODE=mp
 ```
+
+For an update, skip Secret creation and retain the existing broker and API
+credentials. If a credential is missing or invalid, patch only that key; do not
+reapply empty broker values or generate replacements for working credentials.
 
 Pin a tested image digest in the deployment overlay before applying; do not deploy
 an unverified mutable `latest` tag. Existing deployments from before API credential
