@@ -4,10 +4,5 @@ namespace: mqtt-gateway
 resources:
   - 00-namespace.yaml
   - 01-configmap.yaml
-  - 02-secret.example.yaml
   - 03-deployment.yaml
   - 04-service.yaml
-  - 05-ingress.stub.yaml
-images:
-  - name: ghcr.io/4alvit/fastapi-mqtt-gateway
-    newTag: latest
