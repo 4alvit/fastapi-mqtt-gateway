@@ -11,6 +11,20 @@ Default MQTT broker: cluster Mosquitto in `homeassistant`
 
 ## Apply
 
+Use the `deploy/k3s-mp` Kustomization, which pairs the probes with the tested 0.1.3
+image built from source `6a50ca2`, pinned by digest. Prepare an ignored local copy
+and set `images[].newName` in its overlay to the registry holding that exact
+image. The committed registry hostname is deliberately a placeholder.
+Customize the broker ConfigMap in the same local copy when necessary.
+
+```bash
+mkdir -p .local-private
+chmod 700 .local-private
+cp -R deploy/k3s deploy/k3s-mp .local-private/
+# Edit .local-private/k3s-mp/kustomization.yaml: set the real registry.
+kubectl kustomize .local-private/k3s-mp
+```
+
 Create the real Secret out-of-band before applying. The Kustomization deliberately
 excludes `02-secret.example.yaml`, so an ordinary apply cannot overwrite existing
 credentials with placeholders. It also excludes the optional placeholder Ingress;
@@ -28,7 +42,7 @@ kubectl -n mqtt-gateway create secret generic fastapi-mqtt-gateway \
   --from-literal=MQTT_USERNAME='' \
   --from-literal=MQTT_PASSWORD=''
 
-kubectl apply -k deploy/k3s
+kubectl apply -k .local-private/k3s-mp
 kubectl -n mqtt-gateway get pods -o wide   # expect NODE=mp
 ```
 
@@ -36,8 +50,9 @@ For an update, skip Secret creation and retain the existing broker and API
 credentials. If a credential is missing or invalid, patch only that key; do not
 reapply empty broker values or generate replacements for working credentials.
 
-Pin a tested image digest in the deployment overlay before applying; do not deploy
-an unverified mutable `latest` tag. Existing deployments from before API credential
+Apply the configured overlay, not the unpinned base. Keep the digest when setting
+the registry; use a new verified digest when upgrading, and roll back the image
+and its compatible probes together. Existing deployments from before API credential
 validation must provide `API_USERNAME`, `API_PASSWORD`, and a non-placeholder
 `JWT_SECRET_KEY`; existing broker credentials are separate and must be preserved.
 

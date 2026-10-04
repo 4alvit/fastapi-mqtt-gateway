@@ -6,6 +6,3 @@ resources:
   - 01-configmap.yaml
   - 03-deployment.yaml
   - 04-service.yaml
-images:
-  - name: ghcr.io/4alvit/fastapi-mqtt-gateway
-    newTag: latest

@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../k3s
+images:
+  - name: ghcr.io/4alvit/fastapi-mqtt-gateway
+    # Set the registry hostname in the ignored local copy before applying.
+    newName: registry.example.invalid/fastapi-mqtt-gateway
+    digest: sha256:e3fdfcfdeff3976e6265d69017eb80f3a765fe49016bb38d563fd35f349e8b42
