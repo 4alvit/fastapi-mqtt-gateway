@@ -151,6 +151,14 @@ async def health_check(mqtt_client: ClientDep) -> HealthResponse:
     )
 
 
+@router.get("/ready", response_model=HealthResponse)
+async def readiness_check(mqtt_client: ClientDep) -> HealthResponse:
+    """Keep an unavailable broker out of service routing without restart loops."""
+    if not mqtt_client or not mqtt_client.is_connected():
+        raise HTTPException(status_code=503, detail="MQTT broker is disconnected")
+    return await health_check(mqtt_client)
+
+
 @router.websocket("/ws")
 async def websocket_endpoint(
     websocket: WebSocket,
