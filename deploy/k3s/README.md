@@ -3,6 +3,8 @@
 Pinned to Mac Pro worker via `nodeSelector: kubernetes.io/hostname: mp`.
 The Deployment has exactly one replica and uses `Recreate`: rolling updates
 must not overlap two clients with the same `MQTT_CLIENT_ID`.
+A startup probe allows up to five minutes for cold imports on a busy worker
+before liveness checks take over. The 250m CPU request preserves a scheduling share.
 
 Default MQTT broker: cluster Mosquitto in `homeassistant`
 (`mosquitto.homeassistant.svc.cluster.local:1883`).
