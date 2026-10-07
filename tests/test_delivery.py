@@ -1,14 +1,16 @@
 """Delivery regressions without a network broker."""
 
 import asyncio
-from unittest.mock import MagicMock
+from collections.abc import Callable
+from typing import cast
+from unittest.mock import MagicMock, patch
 
 import paho.mqtt.client as mqtt
 import pytest
 
 from fastapi_mqtt_gateway.core.config import Settings
 from fastapi_mqtt_gateway.models import PublishRequest, RetainedQueryRequest, SubscribeRequest
-from fastapi_mqtt_gateway.mqtt.client import MQTTClient
+from fastapi_mqtt_gateway.mqtt.client import MQTTClient, ReceivedMessage
 from fastapi_mqtt_gateway.services.mqtt_service import MQTTService
 
 
@@ -145,3 +147,169 @@ async def test_failed_subscribe_preserves_existing_owner(settings: Settings) -> 
     assert not result.success and not client._packet_callbacks
     assert service.is_subscribed("devices/a")
     broker.unsubscribe.assert_not_called()
+
+
+class _InboundPacket:
+    """Typed stand-in carrying the four attributes the delivery path reads."""
+
+    def __init__(self, topic: str, payload: bytes, qos: int, retain: bool) -> None:
+        self.topic = topic
+        self.payload = payload
+        self.qos = qos
+        self.retain = retain
+
+
+class _ScheduledLoop:
+    """Records drain callbacks without touching a running event loop."""
+
+    def __init__(self) -> None:
+        self.scheduled: list[Callable[[], None]] = []
+
+    def call_soon_threadsafe(self, callback: Callable[[], None], *args: object) -> None:
+        if args:
+            raise AssertionError("drain scheduling must not bind extra arguments")
+        self.scheduled.append(callback)
+
+
+def _delivery_packet(topic: str, payload: bytes, qos: int, retain: bool) -> _InboundPacket:
+    return _InboundPacket(topic, payload, qos, retain)
+
+
+def _queued_message(client: MQTTClient, topic: str, payload: bytes, qos: int, retain: bool) -> None:
+    client._on_message(
+        cast(mqtt.Client, None),
+        None,
+        cast(mqtt.MQTTMessage, _delivery_packet(topic, payload, qos, retain)),
+    )
+
+
+def test_queued_subclass_override_receives_original_arguments(settings: Settings) -> None:
+    seen: list[tuple[str, bytes, int, bool]] = []
+
+    class Sub(MQTTClient):
+        def _deliver_message(
+            self, topic: str, payload: bytes, qos: int = 0, retain: bool = False
+        ) -> None:
+            seen.append((topic, payload, qos, retain))
+            super()._deliver_message(topic, payload, qos, retain)
+
+    client = Sub(settings)
+    queue = client._message_queue
+    queue_id = id(queue)
+    capacity = queue.maxsize
+    loop = _ScheduledLoop()
+    client._event_loop = cast(asyncio.AbstractEventLoop, loop)
+    payload = b"subclass-payload"
+    _queued_message(client, "devices/a", payload, 2, True)
+    assert len(loop.scheduled) == 1
+    loop.scheduled[0]()
+    assert seen == [("devices/a", payload, 2, True)]
+    assert seen[0][1] is payload
+    assert id(client._message_queue) == queue_id
+    assert type(client._message_queue) is asyncio.Queue
+    assert client._message_queue.maxsize == capacity
+    topic, retained = client._message_queue.get_nowait()
+    assert topic == "devices/a" and retained is payload
+    assert not client._pending_messages and client._dispatch_pending is False
+
+
+def test_queued_instance_override_receives_original_arguments(settings: Settings) -> None:
+    client = MQTTClient(settings)
+    queue_id = id(client._message_queue)
+    capacity = client._message_queue.maxsize
+    loop = _ScheduledLoop()
+    client._event_loop = cast(asyncio.AbstractEventLoop, loop)
+    payload = b"instance-payload"
+    _queued_message(client, "devices/b", payload, 1, False)
+    seen: list[tuple[str, bytes, int, bool]] = []
+    original = client._deliver_message
+
+    def replacement(topic: str, body: bytes, qos: int = 0, retain: bool = False) -> None:
+        seen.append((topic, body, qos, retain))
+        original(topic, body, qos, retain)
+
+    with patch.object(client, "_deliver_message", replacement):
+        assert len(loop.scheduled) == 1
+        loop.scheduled[0]()
+        assert seen == [("devices/b", payload, 1, False)]
+        assert seen[0][1] is payload
+        assert id(client._message_queue) == queue_id
+        assert type(client._message_queue) is asyncio.Queue
+        assert client._message_queue.maxsize == capacity
+        topic, retained = client._message_queue.get_nowait()
+        assert topic == "devices/b" and retained is payload
+        assert not client._pending_messages and client._dispatch_pending is False
+
+
+def test_fresh_callback_messages_and_bounded_consumer_keeps_newest(settings: Settings) -> None:
+    client = MQTTClient(settings)
+    queue = client._message_queue
+    capacity = queue.maxsize
+    assert capacity >= 2
+    queue_id = id(queue)
+    assert type(queue) is asyncio.Queue
+    for index in range(capacity):
+        queue.put_nowait((f"old-{index}", b"old"))
+    loop = _ScheduledLoop()
+    client._event_loop = cast(asyncio.AbstractEventLoop, loop)
+    seen: list[ReceivedMessage] = []
+    client.add_packet_callback(seen.append)
+    first = b"newest-a"
+    second = b"newest-b"
+    _queued_message(client, "topic-a", first, 1, True)
+    _queued_message(client, "topic-b", second, 2, False)
+    assert len(loop.scheduled) == 1
+    loop.scheduled[0]()
+    assert len(seen) == 2
+    assert type(seen[0]).__name__ == "ReceivedMessage"
+    assert type(seen[1]).__name__ == "ReceivedMessage"
+    assert seen[0] is not seen[1]
+    assert seen[0].topic == "topic-a" and seen[0].payload is first
+    assert seen[0].qos == 1 and seen[0].retain is True
+    assert seen[1].topic == "topic-b" and seen[1].payload is second
+    assert seen[1].qos == 2 and seen[1].retain is False
+    retained: list[tuple[str, bytes]] = []
+    while not queue.empty():
+        retained.append(queue.get_nowait())
+    assert len(retained) == capacity
+    assert retained[-2] == ("topic-a", first) and retained[-2][1] is first
+    assert retained[-1] == ("topic-b", second) and retained[-1][1] is second
+    assert id(client._message_queue) == queue_id
+    assert client._message_queue.maxsize == capacity
+    assert not client._pending_messages and client._dispatch_pending is False
+
+
+def test_reentrant_queued_arrival_is_drained_without_loss(settings: Settings) -> None:
+    client = MQTTClient(settings)
+    assert client._message_queue.maxsize >= 2
+    queue_id = id(client._message_queue)
+    loop = _ScheduledLoop()
+    client._event_loop = cast(asyncio.AbstractEventLoop, loop)
+    second = b"second-payload"
+    topics: list[tuple[str, bytes, int, bool]] = []
+
+    def callback(message: ReceivedMessage) -> None:
+        topics.append((message.topic, message.payload, message.qos, message.retain))
+        if message.topic == "first":
+            _queued_message(client, "second", second, 1, False)
+
+    client.add_packet_callback(callback)
+    first = b"first-payload"
+    _queued_message(client, "first", first, 2, True)
+    assert len(loop.scheduled) == 1
+    loop.scheduled[0]()
+    assert topics == [("first", first, 2, True)]
+    assert topics[0][1] is first
+    assert len(loop.scheduled) == 2
+    assert client._dispatch_pending is True
+    loop.scheduled[1]()
+    assert topics == [("first", first, 2, True), ("second", second, 1, False)]
+    assert topics[1][1] is second
+    assert topics[0][0] != topics[1][0]
+    retained: list[tuple[str, bytes]] = []
+    while not client._message_queue.empty():
+        retained.append(client._message_queue.get_nowait())
+    assert retained == [("first", first), ("second", second)]
+    assert id(client._message_queue) == queue_id
+    assert type(client._message_queue) is asyncio.Queue
+    assert not client._pending_messages and client._dispatch_pending is False
