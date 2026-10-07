@@ -37,7 +37,9 @@ class MQTTClient:
             maxsize=settings.mqtt_queue_size
         )
         self._event_loop: asyncio.AbstractEventLoop | None = None
-        self._pending_messages: deque[ReceivedMessage] = deque(maxlen=settings.mqtt_queue_size)
+        self._pending_messages: deque[tuple[str, bytes, int, bool]] = deque(
+            maxlen=settings.mqtt_queue_size
+        )
         self._dispatch_lock = threading.Lock()
         self._dispatch_pending = False
         self._subscriptions: dict[str, int] = {}
@@ -95,7 +97,7 @@ class MQTTClient:
         # A single scheduled drain bounds both message storage and the number
         # of cross-thread callbacks waiting on a busy ASGI event loop.
         with self._dispatch_lock:
-            self._pending_messages.append(ReceivedMessage(topic, payload, msg.qos, msg.retain))
+            self._pending_messages.append((topic, payload, msg.qos, msg.retain))
             if not self._dispatch_pending:
                 self._dispatch_pending = True
                 self._event_loop.call_soon_threadsafe(self._drain_messages)
@@ -106,7 +108,7 @@ class MQTTClient:
             self._pending_messages.clear()
             self._dispatch_pending = False
         for message in messages:
-            self._deliver_message(message.topic, message.payload, message.qos, message.retain)
+            self._deliver_message(*message)
 
     def _deliver_message(
         self, topic: str, payload: bytes, qos: int = 0, retain: bool = False
