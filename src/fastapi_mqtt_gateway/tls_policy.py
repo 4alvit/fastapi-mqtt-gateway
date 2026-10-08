@@ -30,7 +30,7 @@ def _certificate_key_ok(der: bytes) -> bool:
         from cryptography.exceptions import UnsupportedAlgorithm
         from cryptography.hazmat.primitives.asymmetric import dsa, ec, ed448, ed25519, rsa
     except ImportError:
-        raise ssl.SSLError("Verified HTTPS requires the cryptography package") from None
+        raise ssl.SSLError("Verified TLS requires the cryptography package") from None
     try:
         key = x509.load_der_x509_certificate(der).public_key()
     except (ValueError, UnsupportedAlgorithm):
