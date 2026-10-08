@@ -15,6 +15,7 @@ jobs:
       matrix:
         language:
           - python
+          - actions
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
@@ -22,11 +23,14 @@ jobs:
           egress-policy: audit
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
       - name: Initialize CodeQL
         uses: github/codeql-action/init@f205ea1c3313d32999d8d6a48b4f6530d4437b38
         with:
           languages: ${{ matrix.language }}
       - name: Autobuild
+        if: matrix.language != 'actions'
         uses: github/codeql-action/autobuild@f205ea1c3313d32999d8d6a48b4f6530d4437b38
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@f205ea1c3313d32999d8d6a48b4f6530d4437b38
