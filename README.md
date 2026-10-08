@@ -103,7 +103,7 @@ graph LR
 git clone <repo> fastapi-mqtt-gateway
 cd fastapi-mqtt-gateway
 cp .env.example .env
-# Set API_USERNAME, a random API_PASSWORD (at least 16 characters), and
+# Set API_USERNAME, API_PASSWORD_HASH (generate it with python -m fastapi_mqtt_gateway.password_hash), and
 # JWT_SECRET_KEY (at least 32 characters). Use openssl rand -hex 32 for secrets.
 # Empty values and known placeholders prevent startup.
 
@@ -137,7 +137,7 @@ uvicorn fastapi_mqtt_gateway.main:app --reload --host 0.0.0.0 --port 8000
 | `MQTT_PASSWORD` | `` | MQTT password (optional) |
 | `MQTT_USE_TLS` | `false` | Enable TLS |
 | `API_USERNAME` | *(required)* | Single API principal, separate from MQTT login |
-| `API_PASSWORD` | *(required)* | API password (min 16 characters) |
+| `API_PASSWORD_HASH` | *(required)* | Salted PBKDF2-SHA256 verifier; generate with `python -m fastapi_mqtt_gateway.password_hash` |
 | `JWT_SECRET_KEY` | *(required)* | JWT signing secret (min 32 chars) |
 | `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | Access token TTL |
 | `RATE_LIMIT_ENABLED` | `true` | Enable rate limiting |
@@ -226,7 +226,7 @@ newest messages on overflow; this is a telemetry stream, not a durable event log
 
 ### Upgrade from the previous authentication defaults
 
-Set `API_USERNAME`, `API_PASSWORD`, and a unique `JWT_SECRET_KEY` before deploying.
+Set `API_USERNAME`, `API_PASSWORD_HASH`, and a unique `JWT_SECRET_KEY` before deploying.
 The broker username/password no longer authorize API calls. Login requires a
 form body; query-string credentials are rejected. Previously issued tokens for
 another username or without an expiry are rejected. Upgrade WebSocket clients to
@@ -308,11 +308,12 @@ mypy .
 Manifests: [`deploy/k3s/`](deploy/k3s/) — Namespace `mqtt-gateway`, Deployment with `nodeSelector: kubernetes.io/hostname: mp`, Service, optional Ingress stub, ConfigMap + example Secret (no real secrets).
 
 ```bash
+API_PASSWORD_HASH="$(python -m fastapi_mqtt_gateway.password_hash)"
 kubectl create namespace mqtt-gateway --dry-run=client -o yaml | kubectl apply -f -
 kubectl -n mqtt-gateway create secret generic fastapi-mqtt-gateway \
   --from-literal=JWT_SECRET_KEY="$(openssl rand -hex 32)" \
   --from-literal=API_USERNAME=gateway \
-  --from-literal=API_PASSWORD="$(openssl rand -hex 24)" \
+  --from-literal=API_PASSWORD_HASH="$API_PASSWORD_HASH" \
   --from-literal=MQTT_USERNAME='' \
   --from-literal=MQTT_PASSWORD='' \
   --dry-run=client -o yaml | kubectl apply -f -
@@ -335,3 +336,23 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development, bug reports and proposal
 [SECURITY.md](SECURITY.md) for confidential vulnerability reports and deployment
 boundaries, and the [OpenSSF evidence index](docs/openssf-evidence.md) for assessment
 scope and verification.
+
+
+### Migrate plaintext API credentials
+
+The gateway now requires `API_PASSWORD_HASH` instead of `API_PASSWORD`. Generate
+it using `python -m fastapi_mqtt_gateway.password_hash`; the interactive command
+reads the password without echo and prints only a salted PBKDF2-HMAC-SHA256
+verifier (600,000 iterations, 128-bit random salt). Store that verifier in your
+private environment or Kubernetes Secret and remove the old plaintext setting.
+In a Compose `.env` file, enclose the verifier in single quotes so its `$`
+separators are not interpreted as variable references.
+Keep the actual password in the client or a password manager. Login requests
+still use the same username/password form and require HTTPS at the ingress.
+Existing configurations containing only `API_PASSWORD` deliberately fail startup
+until migrated. No automatic deployment or secret rotation is performed.
+
+Password checks run in a worker thread with two KDF operations allowed at once;
+the existing login rate limit remains active. Treat verifiers as sensitive, since
+an attacker can attempt offline guessing. JWT signing keys are independent and
+must remain random, private and at least 32 characters long.

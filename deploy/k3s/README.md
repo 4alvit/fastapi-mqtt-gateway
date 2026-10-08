@@ -32,13 +32,14 @@ configure a real ingress host and TLS in a private overlay if external access is
 needed. The ClusterIP Service is available without an Ingress.
 
 ```bash
+API_PASSWORD_HASH="$(python -m fastapi_mqtt_gateway.password_hash)"
 kubectl create namespace mqtt-gateway --dry-run=client -o yaml | kubectl apply -f -
 # Initial installation only: create fails if the Secret already exists.
 # Supply broker credentials here when the broker requires authentication.
 kubectl -n mqtt-gateway create secret generic fastapi-mqtt-gateway \
   --from-literal=JWT_SECRET_KEY="$(openssl rand -hex 32)" \
   --from-literal=API_USERNAME=gateway \
-  --from-literal=API_PASSWORD="$(openssl rand -hex 24)" \
+  --from-literal=API_PASSWORD_HASH="$API_PASSWORD_HASH" \
   --from-literal=MQTT_USERNAME='' \
   --from-literal=MQTT_PASSWORD=''
 
@@ -46,14 +47,15 @@ kubectl apply -k .local-private/k3s-mp
 kubectl -n mqtt-gateway get pods -o wide   # expect NODE=mp
 ```
 
-For an update, skip Secret creation and retain the existing broker and API
-credentials. If a credential is missing or invalid, patch only that key; do not
+For an update, skip Secret creation and retain the existing broker credentials.
+Migrate the API password to `API_PASSWORD_HASH` as described in the root README,
+then remove `API_PASSWORD` from the Secret. If a credential is missing or invalid, patch only that key; do not
 reapply empty broker values or generate replacements for working credentials.
 
 Apply the configured overlay, not the unpinned base. Keep the digest when setting
 the registry; use a new verified digest when upgrading, and roll back the image
 and its compatible probes together. Existing deployments from before API credential
-validation must provide `API_USERNAME`, `API_PASSWORD`, and a non-placeholder
+validation must provide `API_USERNAME`, `API_PASSWORD_HASH`, and a non-placeholder
 `JWT_SECRET_KEY`; existing broker credentials are separate and must be preserved.
 
 The container runs as UID/GID 10001 with a read-only root filesystem and a
