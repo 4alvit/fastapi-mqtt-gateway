@@ -20,7 +20,9 @@ import json
 import os
 import re
 import stat
-import subprocess
+
+# Subprocess calls below use argument vectors with shell=False.
+import subprocess  # nosec B404
 import sys
 import tempfile
 import time
@@ -64,6 +66,7 @@ API_PATHS = {
     "PATCH": (r"releases/[1-9]\d*",),
     "PUT": (r"contents/release-version-state\.json",),
 }
+SHA256_PATTERN = r"[0-9a-f]{64}"
 SHA_RE = re.compile(r"[0-9a-f]{40}\Z")
 NAME_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._+-]{0,199}\Z")
 REPO_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*\Z")
@@ -212,7 +215,8 @@ class GitHub:
             and bool(os.environ.get("GH_TOKEN")),
             "Publication token is missing or its permission probe is not enabled",
         )
-        result = subprocess.run(
+        # Developer/CI toolchain selected by the invoking operator via PATH.
+        result = subprocess.run(  # nosec B603, B607
             [
                 "gh",
                 "api",
@@ -306,7 +310,8 @@ class GitHub:
             "PUT": ["--method", "PUT"],
         }[method]
         return self.response(
-            subprocess.run(
+            # Developer/CI toolchain selected by the invoking operator via PATH.
+            subprocess.run(  # nosec B603, B607
                 [
                     "gh",
                     "api",
@@ -370,7 +375,8 @@ class GitHub:
         )
         endpoint = f"{self.base}/{path}"
         try:
-            result = subprocess.run(
+            # Developer/CI toolchain selected by the invoking operator via PATH.
+            result = subprocess.run(  # nosec B603, B607
                 [
                     "gh",
                     "api",
@@ -413,7 +419,8 @@ class GitHub:
             "Upload must come from the private release staging directory",
         )
         self.response(
-            subprocess.run(
+            # Developer/CI toolchain selected by the invoking operator via PATH.
+            subprocess.run(  # nosec B603, B607
                 [
                     "gh",
                     "release",
@@ -520,7 +527,7 @@ def validate_policy_snapshot(snapshot: object, repo: str) -> None:
         isinstance(snapshot.get("git_blob_sha"), str)
         and SHA_RE.fullmatch(snapshot["git_blob_sha"])
         and isinstance(snapshot.get("sha256"), str)
-        and re.fullmatch(r"[0-9a-f]{64}", snapshot["sha256"]),
+        and re.fullmatch(SHA256_PATTERN, snapshot["sha256"]),
         "Invalid source policy snapshot hashes",
     )
     require_release_policy(snapshot.get("data"), repo, qualified=True)
@@ -541,7 +548,8 @@ def check_ancestry(gh: GitHub, sha: str, default_branch: str) -> None:
 
 def checked_out_sha() -> str:
     """Return the exact local commit used by the publication process."""
-    result = subprocess.run(
+    # Developer/CI toolchain selected by the invoking operator via PATH.
+    result = subprocess.run(  # nosec B603, B607
         ["git", "rev-parse", "HEAD"], text=True, capture_output=True, check=False
     )
     require(result.returncode == 0, "Must run from the checked-out release repository")
@@ -1003,6 +1011,179 @@ def verify_uploaded_asset(gh: GitHub, item: dict, path: Path) -> None:
     require(remote == local, "Uploaded bytes differ; draft left unpublished")
 
 
+def _release_fence(line: str) -> tuple[str, int, str] | None:
+    """Recognize a Markdown fence with at most three leading spaces."""
+    content = line.lstrip(" ")
+    if len(line) - len(content) > 3 or not content or content[0] not in "`~":
+        return None
+    marker = content[0]
+    length = len(content) - len(content.lstrip(marker))
+    if length < 3:
+        return None
+    return marker, length, content[length:]
+
+
+def _release_code_span_ends(line: str) -> dict[int, int]:
+    """Find equal-length inline backtick pairs in one linear scan and reverse pass."""
+    runs = [(match.start(), match.end()) for match in re.finditer(r"`+", line)]
+    following = {}
+    ends = {}
+    for start, end in reversed(runs):
+        length = end - start
+        if length in following:
+            ends[start] = following[length]
+        following[length] = end
+    return ends
+
+
+def _release_comment_line(line: str, comment: bool) -> tuple[str, bool]:
+    """Mask comments without shifting offsets or interpreting literal inline code."""
+    visible = list(line)
+    code_ends = _release_code_span_ends(line)
+    position = 0
+    while position < len(line):
+        if comment:
+            end = line.find("-->", position)
+            stop = len(line) if end < 0 else end + 3
+            visible[position:stop] = [
+                char if char in "\r\n" else " " for char in line[position:stop]
+            ]
+            position = stop
+            comment = end < 0
+        elif line[position] == "\\":
+            position += 2
+        elif position in code_ends:
+            position = code_ends[position]
+        elif line.startswith("<!--", position):
+            comment = True
+        else:
+            position += 1
+    return "".join(visible), comment
+
+
+def _release_fence_closes(candidate, fence) -> bool:
+    return (
+        candidate is not None
+        and candidate[0] == fence[0]
+        and candidate[1] >= fence[1]
+        and not candidate[2].strip(" \t\r\n")
+    )
+
+
+def _release_lines(text: str):
+    """Yield offset-preserving text, heading eligibility and visible guidance."""
+    fence = None
+    comment = False
+    for line in io.StringIO(text):
+        candidate = _release_fence(line)
+        if fence is not None:
+            closes = _release_fence_closes(candidate, fence)
+            yield line, False, not closes
+            if closes:
+                fence = None
+        elif not comment and candidate is not None and (
+            candidate[0] == "~" or "`" not in candidate[2]
+        ):
+            fence = candidate[:2]
+            yield line, False, False
+        elif not comment and line.startswith(("    ", "\t")):
+            yield line, False, True
+        else:
+            visible, comment = _release_comment_line(line, comment)
+            yield visible, True, True
+
+
+def _release_headings(text: str) -> list[tuple[int, str, int, int]]:
+    """Locate release headings outside comments and fenced code examples."""
+    headings = []
+    offset = 0
+    for line, heading_allowed, _ in _release_lines(text):
+        indentation = len(line) - len(line.lstrip(" "))
+        heading = line[indentation:] if indentation <= 3 else line
+        level = len(heading) - len(heading.lstrip("#"))
+        if heading_allowed and 1 <= level <= 6 and heading[level : level + 1] in ("", " ", "\t", "\r", "\n"):
+            headings.append(
+                (level, heading[level:].strip(" \t\r\n"), offset, offset + len(line))
+            )
+        offset += len(line)
+    return headings
+
+
+def _release_sections(text: str, level: int):
+    """Keep original bodies plus comment-masked bodies for validation."""
+    visible = "".join(line for line, _, _ in _release_lines(text))
+    headings = [heading for heading in _release_headings(text) if heading[0] <= level]
+    for index, (heading_level, title, _, start) in enumerate(headings):
+        if heading_level != level:
+            continue
+        end = headings[index + 1][2] if index + 1 < len(headings) else len(text)
+        yield title, text[start:end].strip(), visible[start:end]
+
+
+def _release_container_content(line: str) -> str:
+    """Ignore empty Markdown containers without discarding literal code content."""
+    line = line.expandtabs(4).strip()
+    marker = re.compile(r">|(?:[-+*]|\d{1,9}[.)])(?=[ \t]|$)", re.ASCII)
+    position = 0
+    list_item = False
+    while match := marker.match(line, position):
+        list_item = match.group() != ">"
+        position = match.end()
+        whitespace = position
+        while position < len(line) and line[position] in " \t":
+            position += 1
+        if position - whitespace >= 5:
+            # After the container separator, four spaces introduce literal code.
+            return line[whitespace:]
+    content = line[position:]
+    if list_item and content in ("[ ]", "[x]", "[X]"):
+        return ""
+    return content
+
+
+
+def _release_has_guidance(text: str) -> bool:
+    """Require visible content beyond comments, headings and separator markers."""
+    for line, heading_allowed, guidance in _release_lines(text):
+        if not guidance or not line.strip():
+            continue
+        if not heading_allowed:
+            return True
+        line = _release_container_content(line)
+        if line.startswith(("    ", "\t")):
+            return True
+        if not line or re.match(r" {0,3}#{1,6}(?:[ \t\r\n]|$)", line):
+            continue
+        markers = line.strip().replace(" ", "").replace("\t", "")
+        if len(markers) >= 3 and markers[0] in "-*_" and not markers.strip(markers[0]):
+            continue
+        return True
+    return False
+
+
+
+
+def _release_has_setext_heading(text: str) -> bool:
+    """Reject unsupported underlined headings within the selected ATX section."""
+    paragraph = False
+    for raw, (line, heading_allowed, _) in zip(io.StringIO(text), _release_lines(text)):
+        if not heading_allowed:
+            paragraph = False
+            continue
+        if not line.strip() and raw.strip():
+            # Hidden comment lines cannot make an ambiguous underline harmless.
+            continue
+        if re.fullmatch(r" {0,3}(?:=+|-+)[ \t]*(?:\r?\n)?", line):
+            if paragraph:
+                return True
+            paragraph = False
+        else:
+            paragraph = bool(line.strip()) and not re.match(
+                r" {0,3}#{1,6}(?:[ \t\r\n]|$)", line
+            )
+    return False
+
+
 # pylint: disable-next=too-many-arguments
 def release_notes(gh: GitHub, tag: str, sha: str, provenance: str) -> str:
     """Use reviewed notes at the package source commit, retaining build evidence."""
@@ -1028,7 +1209,7 @@ def release_notes(gh: GitHub, tag: str, sha: str, provenance: str) -> str:
     )
     try:
         raw = base64.b64decode("".join(encoded.split()), validate=True)
-        changelog = raw.decode("utf-8")
+        changelog = raw.decode("utf-8").replace("\r\n", "\n")
     except ValueError as exc:
         raise ReleaseError("Invalid release notes encoding") from exc
     require(
@@ -1039,28 +1220,27 @@ def release_notes(gh: GitHub, tag: str, sha: str, provenance: str) -> str:
         b"blob " + str(len(raw)).encode() + b"\0" + raw, usedforsecurity=False
     ).hexdigest()
     require(response.get("sha") == blob_sha, "Release notes Git blob identity mismatch")
-    sections = re.split(r"^##[ \t]+", changelog, flags=re.MULTILINE)[1:]
     matches = [
-        section.split("\n", 1)[1].strip()
-        for section in sections
-        if "\n" in section
-        and re.fullmatch(
+        (section, visible)
+        for title, section, visible in _release_sections(changelog, 2)
+        if re.fullmatch(
             rf"\[{re.escape(base_version)}\](?:[ \t]+-[ \t]+[^\n]+)?[ \t]*",
-            section.split("\n", 1)[0],
+            title,
         )
     ]
     require(
-        len(matches) == 1 and matches[0], "Release needs one nonempty changelog section"
+        len(matches) == 1 and matches[0][0], "Release needs one nonempty changelog section"
     )
-    notes = matches[0]
+    notes, visible_notes = matches[0]
+    require(
+        not _release_has_setext_heading(notes),
+        "Release note sections must use ATX headings, not Setext underlines",
+    )
+    sections = list(_release_sections(visible_notes, 3))
     for heading in ("Upgrade", "Security"):
-        section = re.search(
-            rf"^###[ \t]+{heading}[ \t]*\n(.*?)(?=^###[ \t]+|\Z)",
-            notes,
-            re.MULTILINE | re.DOTALL,
-        )
+        section = next((body for title, _, body in sections if title == heading), None)
         require(
-            section and section.group(1).strip(),
+            section and _release_has_guidance(section),
             f"Release notes need {heading} guidance",
         )
     body = f"## Changes in {base_version}\n\n{notes}\n\n## Build provenance\n\n{provenance}"
@@ -1338,7 +1518,7 @@ def validate_manifest(
             and re.fullmatch(rf"v{re.escape(base_version)}-rc\.[1-9]\d*", parent["tag"])
             and parent["source_sha"] == manifest["source_sha"]
             and isinstance(parent["manifest_sha256"], str)
-            and re.fullmatch(r"[0-9a-f]{64}", parent["manifest_sha256"]),
+            and re.fullmatch(SHA256_PATTERN, parent["manifest_sha256"]),
             "Invalid final RC provenance",
         )
         require(
@@ -1367,7 +1547,7 @@ def validate_manifest(
         )
         require(
             isinstance(item.get("sha256"), str)
-            and re.fullmatch(r"[0-9a-f]{64}", item["sha256"]),
+            and re.fullmatch(SHA256_PATTERN, item["sha256"]),
             "Invalid asset checksum",
         )
     return manifest
