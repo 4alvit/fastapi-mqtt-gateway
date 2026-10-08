@@ -22,5 +22,6 @@
     "fastapi-mqtt-gateway-container.oci.tar": "ghcr.io/4alvit/fastapi-mqtt-gateway"
   },
   "visibility": "public",
-  "single_entry_ci": true
+  "single_entry_ci": true,
+  "release_notes": "CHANGELOG.md"
 }
