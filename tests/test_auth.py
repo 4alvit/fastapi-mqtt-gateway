@@ -151,5 +151,8 @@ class TestSettingsDefaults:
 
         with pytest.raises(ValidationError):
             Settings(  # type: ignore[call-arg]  # BaseSettings accepts _env_file at runtime.
-                _env_file=None, api_username="admin", api_password="a" * 20, jwt_secret_key=value
+                _env_file=None,
+                api_username="admin",
+                api_password_hash="pbkdf2_sha256$600000$000102030405060708090a0b0c0d0e0f$6dd695267a2262264b62926383c962acad7332fed8f1f649b5f7b2db7ce48220",
+                jwt_secret_key=value,
             )

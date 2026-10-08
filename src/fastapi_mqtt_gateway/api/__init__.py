@@ -28,6 +28,7 @@ from fastapi_mqtt_gateway.core.auth import (
     verify_token,
 )
 from fastapi_mqtt_gateway.core.config import get_settings
+from fastapi_mqtt_gateway.core.passwords import verify_password
 from fastapi_mqtt_gateway.core.topics import authorize_topic
 from fastapi_mqtt_gateway.models import (
     HealthResponse,
@@ -48,6 +49,7 @@ from fastapi_mqtt_gateway.services.mqtt_service import MQTTService
 
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
+password_limiter = anyio.CapacityLimiter(2)
 
 
 def get_mqtt_client(request: Request) -> MQTTClient:
@@ -69,7 +71,9 @@ async def login(
 ) -> Token:
     settings = get_settings()
     username_ok = hmac.compare_digest(username.encode(), settings.api_username.encode())
-    password_ok = hmac.compare_digest(password.encode(), settings.api_password.encode())
+    password_ok = await anyio.to_thread.run_sync(
+        verify_password, password, settings.api_password_hash, limiter=password_limiter
+    )
     if not (username_ok and password_ok):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -4,6 +4,8 @@ from typing import Literal
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from fastapi_mqtt_gateway.core.passwords import validate_password_hash
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -16,7 +18,7 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = "FastAPI MQTT Gateway"
-    app_version: str = "0.1.4"
+    app_version: str = "0.1.5"
     debug: bool = False
 
     # Server
@@ -38,7 +40,7 @@ class Settings(BaseSettings):
 
     # API credentials are independent of the broker credentials.
     api_username: str = Field(min_length=1, max_length=256)
-    api_password: str = Field(min_length=16, max_length=1024, repr=False)
+    api_password_hash: str = Field(repr=False)
 
     # No usable defaults: missing credentials must prevent startup.
     jwt_secret_key: str = Field(min_length=32, repr=False)
@@ -73,13 +75,18 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_format: str = "json"
 
-    @field_validator("api_username", "api_password", "jwt_secret_key")
+    @field_validator("api_username", "jwt_secret_key")
     @classmethod
     def reject_placeholder_credentials(cls, value: str) -> str:
         normalized = value.strip().lower()
         if not normalized or normalized.startswith(("change-me", "replace-me", "your-")):
             raise ValueError("Configure a non-placeholder API credential or JWT signing secret")
         return value
+
+    @field_validator("api_password_hash")
+    @classmethod
+    def check_password_hash(cls, value: str) -> str:
+        return validate_password_hash(value)
 
     @field_validator("log_level")
     @classmethod

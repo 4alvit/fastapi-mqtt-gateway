@@ -32,7 +32,7 @@ services:
       - MQTT_CLIENT_ID=fastapi-mqtt-gateway
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:?Set a random JWT signing secret}
       - API_USERNAME=${API_USERNAME:?Set an API username}
-      - API_PASSWORD=${API_PASSWORD:?Set a random API password}
+      - API_PASSWORD_HASH=${API_PASSWORD_HASH:?Set a salted API password verifier}
       - LOG_LEVEL=INFO
     depends_on:
       mqtt-broker:
