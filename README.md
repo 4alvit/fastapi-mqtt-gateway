@@ -290,7 +290,7 @@ mypy .
 ## Security Considerations
 
 - Configure a unique `JWT_SECRET_KEY` (min 32 chars) and separate API credentials before startup
-- Enable `MQTT_USE_TLS` with valid certificates
+- Enable `MQTT_USE_TLS` with valid certificates; see the [broker TLS key policy](docs/tls-policy.md) for minimum peer-key sizes and runtime requirements.
 - Configure `ALLOWED_TOPIC_PATTERNS` / `BLOCKED_TOPIC_PATTERNS`
 - Use strong passwords for MQTT broker authentication
 - Run behind reverse proxy with TLS termination

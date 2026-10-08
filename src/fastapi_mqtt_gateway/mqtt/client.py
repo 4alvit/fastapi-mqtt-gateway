@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import ssl
 import threading
 from collections import deque
 from collections.abc import Callable
@@ -16,6 +15,7 @@ from paho.mqtt.properties import Properties
 from paho.mqtt.reasoncodes import ReasonCode
 
 from fastapi_mqtt_gateway.core.config import Settings
+from fastapi_mqtt_gateway.mqtt.tls import mqtt_context
 
 logger = structlog.get_logger()
 
@@ -181,12 +181,12 @@ class MQTTClient:
             self._client.username_pw_set(self.settings.mqtt_username, self.settings.mqtt_password)
 
         if self.settings.mqtt_use_tls:
-            self._client.tls_set(
-                ca_certs=self.settings.mqtt_ca_certs or None,
-                certfile=self.settings.mqtt_certfile or None,
-                keyfile=self.settings.mqtt_keyfile or None,
-                cert_reqs=ssl.CERT_REQUIRED,
-                tls_version=ssl.PROTOCOL_TLS,
+            self._client.tls_set_context(
+                mqtt_context(
+                    ca_certs=self.settings.mqtt_ca_certs or None,
+                    certfile=self.settings.mqtt_certfile or None,
+                    keyfile=self.settings.mqtt_keyfile or None,
+                )
             )
 
         try:
