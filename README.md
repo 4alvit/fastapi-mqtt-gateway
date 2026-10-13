@@ -1,13 +1,14 @@
 # FastAPI MQTT Gateway
 
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15458/badge)](https://www.bestpractices.dev/projects/15458)
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-009688.svg)
 ![MQTT](https://img.shields.io/badge/MQTT-v5.0-660066.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://hub.docker.com/)
-[![Tests](https://img.shields.io/badge/Tests-pytest-green.svg)]()
+[![Tests](https://github.com/4alvit/fastapi-mqtt-gateway/actions/workflows/quality-gate.yml/badge.svg)](https://github.com/4alvit/fastapi-mqtt-gateway/actions/workflows/quality-gate.yml)
 
-Production-ready REST/WebSocket → MQTT bridge with authentication, rate limiting, and real-time streaming.
+REST/WebSocket → MQTT bridge with authentication, rate limiting, and real-time streaming.
 
 <!-- ci-release-process:start -->
 ## Release process
@@ -356,3 +357,5 @@ Password checks run in a worker thread with two KDF operations allowed at once;
 the existing login rate limit remains active. Treat verifiers as sensitive, since
 an attacker can attempt offline guessing. JWT signing keys are independent and
 must remain random, private and at least 32 characters long.
+
+Project responsibilities and decisions are documented in [Governance](GOVERNANCE.md), expected conduct in the [Code of conduct](CODE_OF_CONDUCT.md), and priorities in the [Roadmap](ROADMAP.md). The [security assurance case](docs/security-assurance.md) records controls, evidence and unresolved limits.

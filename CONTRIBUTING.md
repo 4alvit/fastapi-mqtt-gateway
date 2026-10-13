@@ -41,3 +41,7 @@ sections. The release controller reads that file from the exact packaged source
 commit, validates its Git blob, and retains build provenance in the public notes.
 Run `python3 -m unittest discover -s .github/release-tests -p "test_*.py"`
 after changing release tooling.
+
+## Project participation
+
+English issues, pull requests and documentation are accepted. Follow the [code of conduct](CODE_OF_CONDUCT.md) and [governance and decision process](GOVERNANCE.md). The [roadmap](ROADMAP.md) records priorities and the [assurance case](docs/security-assurance.md) explains security controls and their verification limits. Credit a vulnerability reporter only with their consent.

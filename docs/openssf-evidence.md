@@ -30,8 +30,12 @@ CI results are evidence for the tested revision and environment, not proof of sa
 
 Follow `RELEASING.md` and the release workflow. Include authentication/ACL changes, API or topic schema compatibility, security fixes and migration requirements in release notes. The [release policy](../.release-policy.json) records automation behavior. A new release must identify its source revision and explain notable changes; security fixes must identify relevant advisories when known.
 
-## Criteria still requiring verification
+## Assessment record and remaining verification
 
 Before submitting or updating the questionnaire, verify the actual project-specific record: responses to bug and enhancement reports, vulnerability reports in every supported channel, release-note history, unresolved scanner findings, dependency status and required review settings. The primary maintainer must personally confirm knowledge of secure design and common implementation vulnerabilities. A confirmation about another repository does not establish these answers here.
 
 Assess transport encryption, credential storage and privilege limits against the implementation and deployment documented in [SECURITY.md](../SECURITY.md). Do not mark a requirement satisfied solely because a policy says it should be. Record justified non-applicability only where the actual architecture supports it. No paid certification, blanket compliance guarantee or third-party audit is claimed.
+
+## Participation and current assurance
+
+See [governance](../GOVERNANCE.md), [code of conduct](../CODE_OF_CONDUCT.md), [roadmap](../ROADMAP.md) and [security assurance](security-assurance.md). The dated [assessment receipt](evidence/assessment-2026-10-13.json) records the reviewed source and results. Access continuity remains unmet; no Silver award is implied.

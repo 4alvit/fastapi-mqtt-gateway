@@ -70,10 +70,13 @@ def _check_verified_keys(connection: ssl.SSLObject | ssl.SSLSocket) -> None:
 
 class _VerifiedSocket(ssl.SSLSocket):
     def do_handshake(self, block: bool = False) -> None:
-        super().do_handshake(block)
         try:
+            super().do_handshake(block)
             _check_verified_keys(self)
-        except Exception:
+        except (ssl.SSLWantReadError, ssl.SSLWantWriteError):
+            # A nonblocking handshake is incomplete, not a failed connection.
+            raise
+        except BaseException:
             self.close()
             raise
 
