@@ -2,6 +2,7 @@
 
 import ast
 import hashlib
+import importlib
 import json
 import os
 import subprocess
@@ -15,11 +16,11 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
-import package_release as package
-import release_version_adapter as adapter
-import stage_release_assets as staging
-import version_plan as versions
-import version_receipt as receipts
+package = importlib.import_module("package_release")
+adapter = importlib.import_module("release_version_adapter")
+staging = importlib.import_module("stage_release_assets")
+versions = importlib.import_module("version_plan")
+receipts = importlib.import_module("version_receipt")
 
 
 class ProjectVersioningTest(unittest.TestCase):

@@ -533,6 +533,7 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "ruff" },
+    { name = "types-atheris" },
 ]
 
 [package.metadata]
@@ -556,6 +557,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.3.0" },
     { name = "slowapi", specifier = ">=0.1.9" },
     { name = "structlog", specifier = ">=24.1.0" },
+    { name = "types-atheris", marker = "extra == 'dev'", specifier = ">=3.1.0.20260630" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.27.0" },
 ]
 provides-extras = ["dev"]
@@ -1399,6 +1401,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/12/64/da524626d3b9cc40c168a13da8335fe1c51be12c0a63685cc6db7308daae/tomli-2.4.1-cp314-cp314t-win_amd64.whl", hash = "sha256:2c1c351919aca02858f740c6d33adea0c5deea37f9ecca1cc1ef9e884a619d26", size = 121196, upload-time = "2026-03-25T20:22:01.169Z" },
     { url = "https://files.pythonhosted.org/packages/5a/cd/e80b62269fc78fc36c9af5a6b89c835baa8af28ff5ad28c7028d60860320/tomli-2.4.1-cp314-cp314t-win_arm64.whl", hash = "sha256:eab21f45c7f66c13f2a9e0e1535309cee140182a9cdae1e041d02e47291e8396", size = 100393, upload-time = "2026-03-25T20:22:02.137Z" },
     { url = "https://files.pythonhosted.org/packages/7b/61/cceae43728b7de99d9b847560c262873a1f6c98202171fd5ed62640b494b/tomli-2.4.1-py3-none-any.whl", hash = "sha256:0d85819802132122da43cb86656f8d1f8c6587d54ae7dcaf30e90533028b49fe", size = 14583, upload-time = "2026-03-25T20:22:03.012Z" },
+]
+
+[[package]]
+name = "types-atheris"
+version = "3.1.0.20260630"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/43/c7/cc43b4593b4d501bdb59bf0da105f71b13cba1d474b8994b205704aefdcd/types_atheris-3.1.0.20260630.tar.gz", hash = "sha256:51b1cb0699718105e383437e29f99fef9fbbf734ac32d14266bd8ad46a358493", size = 8709, upload-time = "2026-06-30T05:59:56.884Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/da/00/871bc99b270bca148ceed5ce9ab5112c0c2244d590cc755e51bdb79ddae6/types_atheris-3.1.0.20260630-py3-none-any.whl", hash = "sha256:f4313997e5bbffb099c14b4d45bf8ca838311297b3a59921bada6fe9cba4ff62", size = 9933, upload-time = "2026-06-30T05:59:55.856Z" },
 ]
 
 [[package]]
