@@ -6,9 +6,9 @@
 ![MQTT](https://img.shields.io/badge/MQTT-v5.0-660066.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://hub.docker.com/)
-[![Tests](https://img.shields.io/badge/Tests-pytest-green.svg)]()
+[![Tests](https://github.com/4alvit/fastapi-mqtt-gateway/actions/workflows/quality-gate.yml/badge.svg)](https://github.com/4alvit/fastapi-mqtt-gateway/actions/workflows/quality-gate.yml)
 
-Production-ready REST/WebSocket → MQTT bridge with authentication, rate limiting, and real-time streaming.
+REST/WebSocket → MQTT bridge with authentication, rate limiting, and real-time streaming.
 
 <!-- ci-release-process:start -->
 ## Release process
