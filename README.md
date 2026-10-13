@@ -1,5 +1,7 @@
 # FastAPI MQTT Gateway
 
+[![Fuzzing: RC only](https://img.shields.io/badge/Fuzzing-RC%20only-blue)](docs/fuzzing.md)
+
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15458/badge)](https://www.bestpractices.dev/projects/15458)
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-009688.svg)
@@ -357,5 +359,14 @@ Password checks run in a worker thread with two KDF operations allowed at once;
 the existing login rate limit remains active. Treat verifiers as sensitive, since
 an attacker can attempt offline guessing. JWT signing keys are independent and
 must remain random, private and at least 32 characters long.
+
+## Release-candidate fuzzing
+
+The real MQTT subscription validator and ACL containment/overlap algorithms receive synthetic topic-filter pairs. Checks include reflexivity, overlap symmetry and consistency of containment. It creates no MQTT client and does not authorize a live subscription.
+
+[RC-only fuzzing policy, local reproduction and failure handling](docs/fuzzing.md).
+
+Release artifact identity, build receipts and local reproduction are documented in
+[release packaging](docs/release-packaging.md).
 
 Project responsibilities and decisions are documented in [Governance](GOVERNANCE.md), expected conduct in the [Code of conduct](CODE_OF_CONDUCT.md), and priorities in the [Roadmap](ROADMAP.md). The [security assurance case](docs/security-assurance.md) records controls, evidence and unresolved limits.

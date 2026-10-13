@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from fastapi_mqtt_gateway._version import __version__
 from fastapi_mqtt_gateway.core.passwords import validate_password_hash
 
 
@@ -18,7 +19,7 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = "FastAPI MQTT Gateway"
-    app_version: str = "0.1.5"
+    app_version: str = __version__
     debug: bool = False
 
     # Server
