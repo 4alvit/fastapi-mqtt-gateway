@@ -2,14 +2,15 @@
 
 [![Fuzzing: RC only](https://img.shields.io/badge/Fuzzing-RC%20only-blue)](docs/fuzzing.md)
 
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15458/badge)](https://www.bestpractices.dev/projects/15458)
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-009688.svg)
 ![MQTT](https://img.shields.io/badge/MQTT-v5.0-660066.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://hub.docker.com/)
-[![Tests](https://img.shields.io/badge/Tests-pytest-green.svg)]()
+[![Tests](https://github.com/4alvit/fastapi-mqtt-gateway/actions/workflows/quality-gate.yml/badge.svg)](https://github.com/4alvit/fastapi-mqtt-gateway/actions/workflows/quality-gate.yml)
 
-Production-ready REST/WebSocket → MQTT bridge with authentication, rate limiting, and real-time streaming.
+REST/WebSocket → MQTT bridge with authentication, rate limiting, and real-time streaming.
 
 <!-- ci-release-process:start -->
 ## Release process
@@ -367,3 +368,5 @@ The real MQTT subscription validator and ACL containment/overlap algorithms rece
 
 Release artifact identity, build receipts and local reproduction are documented in
 [release packaging](docs/release-packaging.md).
+
+Project responsibilities and decisions are documented in [Governance](GOVERNANCE.md), expected conduct in the [Code of conduct](CODE_OF_CONDUCT.md), and priorities in the [Roadmap](ROADMAP.md). The [security assurance case](docs/security-assurance.md) records controls, evidence and unresolved limits.

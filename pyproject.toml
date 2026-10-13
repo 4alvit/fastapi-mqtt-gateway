@@ -55,5 +55,13 @@ disallow_untyped_defs = true
 no_implicit_optional = true
 
 [tool.pytest.ini_options]
+filterwarnings = [
+    "error",
+    # Pinned third-party compatibility notices, reviewed in docs/security-assurance.md.
+    'ignore:Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.:UserWarning:fastapi.testclient',
+    'ignore:The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.:DeprecationWarning:starlette.testclient',
+    'ignore:.*asyncio.iscoroutinefunction.* is deprecated and slated for removal in Python 3.16.*:DeprecationWarning:slowapi.extension',
+]
+
 asyncio_mode = "auto"
 testpaths = ["tests"]

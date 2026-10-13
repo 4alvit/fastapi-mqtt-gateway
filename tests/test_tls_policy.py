@@ -299,3 +299,27 @@ def test_policy_preserves_explicit_cipher_and_protocol_restrictions(level: int) 
     assert context.minimum_version == ssl.TLSVersion.TLSv1_3
     assert context.maximum_version == ssl.TLSVersion.TLSv1_3
     assert context.security_level == max(level, 2)
+
+
+@pytest.mark.parametrize("error", [ssl.SSLError, ssl.SSLWantReadError, ssl.SSLWantWriteError])
+def test_tls_socket_lifetime_after_handshake_error(
+    monkeypatch: pytest.MonkeyPatch, error: type[ssl.SSLError]
+) -> None:
+    """Fatal native handshake errors close the fd; nonblocking retry retains it."""
+    retry = error in (ssl.SSLWantReadError, ssl.SSLWantWriteError)
+
+    def fail_handshake(self: ssl.SSLSocket, block: bool = False) -> None:
+        raise error("synthetic handshake outcome")
+
+    context = enforce_peer_key_policy(ssl.create_default_context())
+    left, right = socket.socketpair()
+    with (
+        right,
+        context.wrap_socket(
+            left, server_hostname="localhost", do_handshake_on_connect=False
+        ) as wrapped,
+    ):
+        monkeypatch.setattr(ssl.SSLSocket, "do_handshake", fail_handshake)
+        with pytest.raises(error, match="synthetic handshake outcome"):
+            wrapped.do_handshake()
+        assert (wrapped.fileno() != -1) == retry
