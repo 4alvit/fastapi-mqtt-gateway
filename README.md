@@ -364,3 +364,6 @@ must remain random, private and at least 32 characters long.
 The real MQTT subscription validator and ACL containment/overlap algorithms receive synthetic topic-filter pairs. Checks include reflexivity, overlap symmetry and consistency of containment. It creates no MQTT client and does not authorize a live subscription.
 
 [RC-only fuzzing policy, local reproduction and failure handling](docs/fuzzing.md).
+
+Release artifact identity, build receipts and local reproduction are documented in
+[release packaging](docs/release-packaging.md).

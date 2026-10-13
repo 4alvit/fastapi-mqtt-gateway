@@ -75,3 +75,10 @@ coverage.xml
 crash-*
 timeout-*
 oom-*
+
+# Frozen release overlays and staged receipts are local build outputs
+.release-plan.json
+.release-inputs.json
+release-assets/
+native-inputs/
+native-output/

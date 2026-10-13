@@ -23,5 +23,55 @@
   },
   "visibility": "public",
   "single_entry_ci": true,
-  "release_notes": "CHANGELOG.md"
+  "release_notes": "CHANGELOG.md",
+  "versioning": {
+    "schema": 1,
+    "promotion": "promote-bytes",
+    "files": [
+      {
+        "path": "pyproject.toml",
+        "format": "toml",
+        "field": "project.version",
+        "package": "fastapi-mqtt-gateway",
+        "value": "package",
+        "ecosystem": "pep440"
+      },
+      {
+        "path": "uv.lock",
+        "format": "uv-lock",
+        "package": "fastapi-mqtt-gateway",
+        "value": "package",
+        "ecosystem": "pep440"
+      },
+      {
+        "path": "src/fastapi_mqtt_gateway/_version.py",
+        "format": "python",
+        "field": "__version__",
+        "value": "package",
+        "ecosystem": "pep440"
+      }
+    ],
+    "artifacts": [
+      {
+        "path": "fastapi-mqtt-gateway-*.tar.gz",
+        "format": "tar-toml",
+        "member": "fastapi-mqtt-gateway/pyproject.toml",
+        "field": "project.version",
+        "package": "fastapi-mqtt-gateway",
+        "value": "package",
+        "ecosystem": "pep440"
+      },
+      {
+        "path": "fastapi-mqtt-gateway-container.oci.tar",
+        "format": "oci",
+        "field": [
+          "config",
+          "Labels",
+          "org.opencontainers.image.version"
+        ],
+        "value": "package"
+      }
+    ],
+    "toolkit_revision": "35d84867c34262567801c44a0e4ec9aa5159326e"
+  }
 }

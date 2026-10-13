@@ -52,8 +52,8 @@ pushes request beta builds through the same validation and build gates. Publicat
 also requires the opt-in variable and an eligible unreleased base version. GitHub can delay
 scheduled runs; schedule timing is not an SLA. A committed base version (`X.Y.Z`)
 is required. Version changes go through PR review, including any native companion
-version files. Native binaries keep that base version; the release manifest records
-the beta/RC/nightly channel and exact source SHA.
+version files. The frozen release plan supplies full candidate versions to declared
+format adapters before compilation; the manifest binds the plan and build receipts.
 
 From a clean checkout matching GitHub's default-branch HEAD:
 
@@ -73,7 +73,10 @@ branch; `package` builds locally, `status` reads run history, and `--dry-run` on
 displays the request.
 
 If the base version already has a stable release, bump the committed version through
-a PR before beta/RC publication. Nightly builds may still use that existing base.
+a PR before beta/RC publication. Nightly builds may still use that existing base. After every fresh check and platform build passes, an automatic nightly skips duplicate GitHub publication if retained immutable evidence qualifies an existing beta/RC/stable at the same source, policy and base. It reports `reused` with that tag, retains its Actions build artifacts, and does not advance the publication floor or create new promotion evidence. Reserved counters may have gaps. Mutable build inputs and current security databases are still exercised. Manual nightly requests, new sources and missing/expired/unverifiable evidence retain full publication.
+Automatic push betas skip packaging/publication with `version-required` when their
+committed base already has a stable tag. Quality and security checks still run.
+Prepare the next version through a PR; manual beta/RC requests still fail strictly.
 
 Candidate tags are unique and immutable: `vX.Y.Z-beta.N`, `vX.Y.Z-rc.N`, or
 `vX.Y.Z-nightly.<UTC timestamp>.<run>.<attempt>`. Candidates are prereleases and
@@ -138,9 +141,17 @@ credentials/streams and production access are not implied by unit tests or build
 The release engine/client are vendored from `victron-venus/venus-os-ci-toolkit`.
 They are excluded from consumer-specific formatting/type policy. Application
 release workflows run the mandatory Release tooling contracts job; validation-only
-projects receive the local client, whose contracts run in the toolkit. Update the toolkit source and rerun
-`scripts/install_release.py`; `--check` detects drift.
+projects receive the local client, whose contracts run in the toolkit. Update the toolkit source, then run
+`python3 scripts/install_release.py /path/to/consumer` from the toolkit checkout;
+add `--check` to detect drift without writing files. The installer is not vendored
+into consumer repositories.
 
 References: [GitHub schedules](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule),
 [protected environments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments),
 [artifact provenance](https://docs.github.com/en/rest/actions/artifacts).
+
+## Automatic version preparation
+
+Run `python3 scripts/release.py prepare-version --pr` from the clean default-branch HEAD. The command refreshes tags and opens a PR with synchronized owned version fields. An existing unreleased base is retained; use `--bump minor`, `--bump major`, or `--version X.Y.Z` for explicit intent. See [version plans](VERSIONING.md) for build overlays, the dedicated allocation ledger and recovery.
+
+A local candidate package also needs the saved `.release-plan.json` at its exact source commit. Restore the `version_plan` object from the published `release-manifest.json` into a disposable checkout before `release.py package`; do not invent a tag or native counter locally. Ordinary development builds can use the project's native build command and explicitly local version identity.

@@ -75,7 +75,20 @@ def build_candidate(
         raise ValueError("This repository only supports validation, not product releases")
     if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
         raise ValueError("Expected the numeric base release version X.Y.Z")
-    if read_version(root, policy) != version:
+    package_version = version
+    if "versioning" in policy:
+        package_version = subprocess.check_output(
+            [
+                sys.executable,
+                str(root / "scripts/release_version_adapter.py"),
+                version,
+                channel,
+                "--root",
+                str(root),
+            ],
+            text=True,
+        ).strip()
+    elif read_version(root, policy) != version:
         raise ValueError("Candidate version must match project metadata")
     if channel not in {"nightly", "beta", "rc"}:
         raise ValueError("Stable releases must promote an existing RC without rebuilding")
@@ -97,7 +110,7 @@ def build_candidate(
             for name in names
             if not includes or any(name == item or name.startswith(item + "/") for item in includes)
         ]
-        archive(source, archive_names, output / f"{project}-{version}.tar.gz", project)
+        archive(source, archive_names, output / f"{project}-{package_version}.tar.gz", project)
         if config.get("python_distribution"):
             # Build backend writes remain in this snapshot, including egg-info.
             subprocess.run(
@@ -140,6 +153,24 @@ def build_candidate(
             host = os.environ.get("DOCKER_HOST", host)
             if not host.startswith(("unix://", "npipe://")):
                 raise ValueError("Release builds require a local Docker endpoint")
+            labels = (
+                json.loads(
+                    subprocess.check_output(
+                        [
+                            sys.executable,
+                            str(root / "scripts/release_container_labels.py"),
+                            "--root",
+                            str(root),
+                        ],
+                        text=True,
+                    )
+                )
+                if "versioning" in policy
+                else {}
+            )
+            label_args = [
+                value for key, item in labels.items() for value in ("--label", f"{key}={item}")
+            ]
             for asset, image in config["containers"].items():
                 if Path(asset).name != asset or not asset.endswith(".oci.tar"):
                     raise ValueError("OCI asset names must be simple .oci.tar filenames")
@@ -158,6 +189,7 @@ def build_candidate(
                         image.get("platforms", "linux/amd64"),
                         "--provenance=true",
                         "--sbom=true",
+                        *label_args,
                         "--file",
                         str(dockerfile),
                         "--output",
