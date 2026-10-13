@@ -83,7 +83,7 @@ def broker(
                                     break
                             except TimeoutError:
                                 continue
-            except (ssl.SSLError, ConnectionResetError) as error:
+            except (ssl.SSLError, ConnectionResetError, BrokenPipeError) as error:
                 observed["tls_error"] = str(error)
             except Exception as error:
                 observed["unexpected"] = repr(error)
@@ -97,6 +97,34 @@ def broker(
             thread.join(6)
             assert not thread.is_alive()
             assert "unexpected" not in observed, observed
+
+
+def test_broker_records_peer_close_before_application_data(
+    chains: dict[str, tuple[Path, Path, Path]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    original_recv = ssl.SSLSocket.recv
+    closed = threading.Event()
+
+    def peer_closed(connection: ssl.SSLSocket, buflen: int = 1024, flags: int = 0) -> bytes:
+        if connection.server_side:
+            closed.set()
+            raise BrokenPipeError("Synthetic peer close after TLS handshake")
+        return original_recv(connection, buflen, flags)
+
+    monkeypatch.setattr(ssl.SSLSocket, "recv", peer_closed)
+    chain = chains["strong"]
+    client_context = ssl.create_default_context(cafile=str(chain[2]))
+    client_context.minimum_version = ssl.TLSVersion.TLSv1_3
+    with (
+        broker(chain, ssl.TLSVersion.TLSv1_3) as (port, observed),
+        socket.create_connection(("127.0.0.1", port), timeout=5) as raw,
+        client_context.wrap_socket(raw, server_hostname="localhost"),
+    ):
+        assert closed.wait(5), "The server did not reach its application-data read"
+
+    assert observed["tls"] == "TLSv1.3"
+    assert observed["bytes"] == b""
+    assert observed["tls_error"] == "Synthetic peer close after TLS handshake"
 
 
 async def connect_once(settings: Settings, attempts: list[Exception]) -> bool:
