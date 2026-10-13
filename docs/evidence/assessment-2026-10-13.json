@@ -1,0 +1,505 @@
+{
+  "project": "4alvit/fastapi-mqtt-gateway",
+  "assessed_on": "2026-10-13",
+  "source_base": "2b049ff3584429367cbe73cb31e05c963c908bfb",
+  "source_identity": "The per-file SHA-256 values below identify the assessed application/tooling bytes including the uncommitted changes in this assessment PR.",
+  "local_validation": {
+    "python": "3.12.14",
+    "platform": "macOS arm64",
+    "combined_pytest_passed": 326,
+    "combined_suites": [
+      "tests",
+      ".github/release-tests",
+      ".github/workflow-tests",
+      ".github/security-tests"
+    ],
+    "additional_final_socket_lifetime_cases_passed": 3,
+    "lint": "Ruff passed",
+    "format": "Ruff passed",
+    "types": "mypy passed",
+    "warning_policy": "error; only exact documented third-party compatibility exceptions in Gateway",
+    "package_build": [
+      "sdist",
+      "wheel"
+    ],
+    "production_or_device_acceptance": false
+  },
+  "coverage": {
+    "scope": "All tracked non-test Python files, including previously unmeasured files at zero credit; no exclusions. Does not measure shell, workflow, Docker or native dependencies.",
+    "covered": 1703,
+    "statements": 2604,
+    "percent": 65.39938556067588,
+    "files": [
+      {
+        "path": "scripts/change_scope.py",
+        "sha256": "dbc1908c8e9fbb6773938250862a805584b1ea4cf5b5c08dbdda57352a4473a5",
+        "statements": 160,
+        "covered": 0,
+        "excluded": 0
+      },
+      {
+        "path": "scripts/package_release.py",
+        "sha256": "f6ea747c3b48bcefabca6ea88d855e96cfd6f426554d7f100e2692ea035cf7bf",
+        "statements": 118,
+        "covered": 0,
+        "excluded": 0
+      },
+      {
+        "path": "scripts/publish_verified.py",
+        "sha256": "46fc91360a634ff4ec9a15fb361341ed6f093a9f58cf6635e6c25388641eaded",
+        "statements": 109,
+        "covered": 0,
+        "excluded": 0
+      },
+      {
+        "path": "scripts/release.py",
+        "sha256": "f94f169b2b7d965f8b349270db973404e360ac483886b26ded8f6c2cd405c822",
+        "statements": 187,
+        "covered": 0,
+        "excluded": 0
+      },
+      {
+        "path": "scripts/release_control.py",
+        "sha256": "de5481b1da3793f45e8088bfe8956680f2b799e404fb420768d1a1dc14a331d7",
+        "statements": 839,
+        "covered": 766,
+        "excluded": 0
+      },
+      {
+        "path": "scripts/validate_scorecard_json.py",
+        "sha256": "5a142d7b0cbb3ac1d941f710d156af0e7da8900abe24b8b80c6a7e17805d4817",
+        "statements": 46,
+        "covered": 45,
+        "excluded": 0
+      },
+      {
+        "path": "scripts/verified_images.py",
+        "sha256": "16e66685364277555dd246b072c679546c361929be3efe45f5b6ff47b92f77b0",
+        "statements": 97,
+        "covered": 0,
+        "excluded": 0
+      },
+      {
+        "path": "scripts/workflow_contracts.py",
+        "sha256": "95e96f1c2003beb5e0200eacef01a16ff1b68a0827c0d4ba8a68375ffe60d795",
+        "statements": 106,
+        "covered": 52,
+        "excluded": 0
+      },
+      {
+        "path": "src/fastapi_mqtt_gateway/__init__.py",
+        "sha256": "fd5aec1826ecd66df4caeeae37b8d553f9197ecb49365408f83d241ed50b9b2b",
+        "statements": 3,
+        "covered": 3,
+        "excluded": 0
+      },
+      {
+        "path": "src/fastapi_mqtt_gateway/_darwin_certificate.py",
+        "sha256": "aacdd5b35a788ff3727f85cc14831de5cd7eebcb474581c336a283bca524bcfb",
+        "statements": 82,
+        "covered": 72,
+        "excluded": 0
+      },
+      {
+        "path": "src/fastapi_mqtt_gateway/api/__init__.py",
+        "sha256": "66003b16b366018ce0634b57dce332439e52ae348362a095fdbe5effb205d0b5",
+        "statements": 187,
+        "covered": 176,
+        "excluded": 0
+      },
+      {
+        "path": "src/fastapi_mqtt_gateway/core/auth.py",
+        "sha256": "776dd57d386fad208a1df9211dfd861255d678c9d41386db0ea695e34f5549c2",
+        "statements": 45,
+        "covered": 39,
+        "excluded": 0
+      },
+      {
+        "path": "src/fastapi_mqtt_gateway/core/config.py",
+        "sha256": "bcb3727a46cfa9f79716556eb2058dc1434f8e17e836e0c03dfa343216f92c8a",
+        "statements": 90,
+        "covered": 80,
+        "excluded": 0
+      },
+      {
+        "path": "src/fastapi_mqtt_gateway/core/passwords.py",
+        "sha256": "8234892c4876604c0520a01169c0791d6966d0acbdd2bac345824d080d2a4ea4",
+        "statements": 24,
+        "covered": 24,
+        "excluded": 0
+      },
+      {
+        "path": "src/fastapi_mqtt_gateway/core/topics.py",
+        "sha256": "5bf90bb2aa62ee4d3c00c15fcbcbadd025d5cad0a9bc4ffde255f174010f6807",
+        "statements": 49,
+        "covered": 43,
+        "excluded": 0
+      },
+      {
+        "path": "src/fastapi_mqtt_gateway/main.py",
+        "sha256": "c445faa14e45aae10671ef76a725467517931dd8e18adbcc45f060c394e59c2b",
+        "statements": 36,
+        "covered": 36,
+        "excluded": 0
+      },
+      {
+        "path": "src/fastapi_mqtt_gateway/models/__init__.py",
+        "sha256": "6b07072ab11841795f26e6c35d7236f981570695b6cc764e1f3c35324fe59bd8",
+        "statements": 57,
+        "covered": 57,
+        "excluded": 0
+      },
+      {
+        "path": "src/fastapi_mqtt_gateway/mqtt/client.py",
+        "sha256": "0ad1b5749ef7cc06a61cb9d27d772bb7995fe8636338e4bb51b1df359ad489f9",
+        "statements": 184,
+        "covered": 168,
+        "excluded": 0
+      },
+      {
+        "path": "src/fastapi_mqtt_gateway/mqtt/tls.py",
+        "sha256": "462ca4c399975dce84219b7fa2295b7c9f18f5b75ff0fd60e7968d6bd4237915",
+        "statements": 10,
+        "covered": 10,
+        "excluded": 0
+      },
+      {
+        "path": "src/fastapi_mqtt_gateway/password_hash.py",
+        "sha256": "33d8efdc4cf0c0f27c93f84fa72658ec9626d834ae8001e8c8c0f1786783bfb2",
+        "statements": 15,
+        "covered": 0,
+        "excluded": 0
+      },
+      {
+        "path": "src/fastapi_mqtt_gateway/services/mqtt_service.py",
+        "sha256": "782edb0c43e40be6b6a8b1540194bb631cd2ae0a5c6574ce9a586d0c0999de59",
+        "statements": 88,
+        "covered": 81,
+        "excluded": 0
+      },
+      {
+        "path": "src/fastapi_mqtt_gateway/tls_policy.py",
+        "sha256": "51714489a9464a4b3150ce5ff5d6ceae2458973cde5403d36665bc7dcf6c7779",
+        "statements": 72,
+        "covered": 51,
+        "excluded": 0
+      }
+    ]
+  },
+  "tls_runtime": {
+    "minimum_version": "TLSv1_2",
+    "verify_mode": "CERT_REQUIRED",
+    "check_hostname": true,
+    "security_level": 2,
+    "openssl": "OpenSSL 3.5.8 25 Aug 2026",
+    "rand_status": true,
+    "ciphers": [
+      {
+        "id": 50336514,
+        "name": "TLS_AES_256_GCM_SHA384",
+        "protocol": "TLSv1.3",
+        "description": "TLS_AES_256_GCM_SHA384         TLSv1.3 Kx=any      Au=any   Enc=AESGCM(256)            Mac=AEAD",
+        "strength_bits": 256,
+        "alg_bits": 256,
+        "aead": true,
+        "symmetric": "aes-256-gcm",
+        "digest": null,
+        "kea": "kx-any",
+        "auth": "auth-any"
+      },
+      {
+        "id": 50336515,
+        "name": "TLS_CHACHA20_POLY1305_SHA256",
+        "protocol": "TLSv1.3",
+        "description": "TLS_CHACHA20_POLY1305_SHA256   TLSv1.3 Kx=any      Au=any   Enc=CHACHA20/POLY1305(256) Mac=AEAD",
+        "strength_bits": 256,
+        "alg_bits": 256,
+        "aead": true,
+        "symmetric": "chacha20-poly1305",
+        "digest": null,
+        "kea": "kx-any",
+        "auth": "auth-any"
+      },
+      {
+        "id": 50336513,
+        "name": "TLS_AES_128_GCM_SHA256",
+        "protocol": "TLSv1.3",
+        "description": "TLS_AES_128_GCM_SHA256         TLSv1.3 Kx=any      Au=any   Enc=AESGCM(128)            Mac=AEAD",
+        "strength_bits": 128,
+        "alg_bits": 128,
+        "aead": true,
+        "symmetric": "aes-128-gcm",
+        "digest": null,
+        "kea": "kx-any",
+        "auth": "auth-any"
+      },
+      {
+        "id": 50380844,
+        "name": "ECDHE-ECDSA-AES256-GCM-SHA384",
+        "protocol": "TLSv1.2",
+        "description": "ECDHE-ECDSA-AES256-GCM-SHA384  TLSv1.2 Kx=ECDH     Au=ECDSA Enc=AESGCM(256)            Mac=AEAD",
+        "strength_bits": 256,
+        "alg_bits": 256,
+        "aead": true,
+        "symmetric": "aes-256-gcm",
+        "digest": null,
+        "kea": "kx-ecdhe",
+        "auth": "auth-ecdsa"
+      },
+      {
+        "id": 50380848,
+        "name": "ECDHE-RSA-AES256-GCM-SHA384",
+        "protocol": "TLSv1.2",
+        "description": "ECDHE-RSA-AES256-GCM-SHA384    TLSv1.2 Kx=ECDH     Au=RSA   Enc=AESGCM(256)            Mac=AEAD",
+        "strength_bits": 256,
+        "alg_bits": 256,
+        "aead": true,
+        "symmetric": "aes-256-gcm",
+        "digest": null,
+        "kea": "kx-ecdhe",
+        "auth": "auth-rsa"
+      },
+      {
+        "id": 50380843,
+        "name": "ECDHE-ECDSA-AES128-GCM-SHA256",
+        "protocol": "TLSv1.2",
+        "description": "ECDHE-ECDSA-AES128-GCM-SHA256  TLSv1.2 Kx=ECDH     Au=ECDSA Enc=AESGCM(128)            Mac=AEAD",
+        "strength_bits": 128,
+        "alg_bits": 128,
+        "aead": true,
+        "symmetric": "aes-128-gcm",
+        "digest": null,
+        "kea": "kx-ecdhe",
+        "auth": "auth-ecdsa"
+      },
+      {
+        "id": 50380847,
+        "name": "ECDHE-RSA-AES128-GCM-SHA256",
+        "protocol": "TLSv1.2",
+        "description": "ECDHE-RSA-AES128-GCM-SHA256    TLSv1.2 Kx=ECDH     Au=RSA   Enc=AESGCM(128)            Mac=AEAD",
+        "strength_bits": 128,
+        "alg_bits": 128,
+        "aead": true,
+        "symmetric": "aes-128-gcm",
+        "digest": null,
+        "kea": "kx-ecdhe",
+        "auth": "auth-rsa"
+      },
+      {
+        "id": 50384041,
+        "name": "ECDHE-ECDSA-CHACHA20-POLY1305",
+        "protocol": "TLSv1.2",
+        "description": "ECDHE-ECDSA-CHACHA20-POLY1305  TLSv1.2 Kx=ECDH     Au=ECDSA Enc=CHACHA20/POLY1305(256) Mac=AEAD",
+        "strength_bits": 256,
+        "alg_bits": 256,
+        "aead": true,
+        "symmetric": "chacha20-poly1305",
+        "digest": null,
+        "kea": "kx-ecdhe",
+        "auth": "auth-ecdsa"
+      },
+      {
+        "id": 50384040,
+        "name": "ECDHE-RSA-CHACHA20-POLY1305",
+        "protocol": "TLSv1.2",
+        "description": "ECDHE-RSA-CHACHA20-POLY1305    TLSv1.2 Kx=ECDH     Au=RSA   Enc=CHACHA20/POLY1305(256) Mac=AEAD",
+        "strength_bits": 256,
+        "alg_bits": 256,
+        "aead": true,
+        "symmetric": "chacha20-poly1305",
+        "digest": null,
+        "kea": "kx-ecdhe",
+        "auth": "auth-rsa"
+      },
+      {
+        "id": 50380836,
+        "name": "ECDHE-ECDSA-AES256-SHA384",
+        "protocol": "TLSv1.2",
+        "description": "ECDHE-ECDSA-AES256-SHA384      TLSv1.2 Kx=ECDH     Au=ECDSA Enc=AES(256)               Mac=SHA384",
+        "strength_bits": 256,
+        "alg_bits": 256,
+        "aead": false,
+        "symmetric": "aes-256-cbc",
+        "digest": "sha384",
+        "kea": "kx-ecdhe",
+        "auth": "auth-ecdsa"
+      },
+      {
+        "id": 50380840,
+        "name": "ECDHE-RSA-AES256-SHA384",
+        "protocol": "TLSv1.2",
+        "description": "ECDHE-RSA-AES256-SHA384        TLSv1.2 Kx=ECDH     Au=RSA   Enc=AES(256)               Mac=SHA384",
+        "strength_bits": 256,
+        "alg_bits": 256,
+        "aead": false,
+        "symmetric": "aes-256-cbc",
+        "digest": "sha384",
+        "kea": "kx-ecdhe",
+        "auth": "auth-rsa"
+      },
+      {
+        "id": 50380835,
+        "name": "ECDHE-ECDSA-AES128-SHA256",
+        "protocol": "TLSv1.2",
+        "description": "ECDHE-ECDSA-AES128-SHA256      TLSv1.2 Kx=ECDH     Au=ECDSA Enc=AES(128)               Mac=SHA256",
+        "strength_bits": 128,
+        "alg_bits": 128,
+        "aead": false,
+        "symmetric": "aes-128-cbc",
+        "digest": "sha256",
+        "kea": "kx-ecdhe",
+        "auth": "auth-ecdsa"
+      },
+      {
+        "id": 50380839,
+        "name": "ECDHE-RSA-AES128-SHA256",
+        "protocol": "TLSv1.2",
+        "description": "ECDHE-RSA-AES128-SHA256        TLSv1.2 Kx=ECDH     Au=RSA   Enc=AES(128)               Mac=SHA256",
+        "strength_bits": 128,
+        "alg_bits": 128,
+        "aead": false,
+        "symmetric": "aes-128-cbc",
+        "digest": "sha256",
+        "kea": "kx-ecdhe",
+        "auth": "auth-rsa"
+      },
+      {
+        "id": 50331807,
+        "name": "DHE-RSA-AES256-GCM-SHA384",
+        "protocol": "TLSv1.2",
+        "description": "DHE-RSA-AES256-GCM-SHA384      TLSv1.2 Kx=DH       Au=RSA   Enc=AESGCM(256)            Mac=AEAD",
+        "strength_bits": 256,
+        "alg_bits": 256,
+        "aead": true,
+        "symmetric": "aes-256-gcm",
+        "digest": null,
+        "kea": "kx-dhe",
+        "auth": "auth-rsa"
+      },
+      {
+        "id": 50331806,
+        "name": "DHE-RSA-AES128-GCM-SHA256",
+        "protocol": "TLSv1.2",
+        "description": "DHE-RSA-AES128-GCM-SHA256      TLSv1.2 Kx=DH       Au=RSA   Enc=AESGCM(128)            Mac=AEAD",
+        "strength_bits": 128,
+        "alg_bits": 128,
+        "aead": true,
+        "symmetric": "aes-128-gcm",
+        "digest": null,
+        "kea": "kx-dhe",
+        "auth": "auth-rsa"
+      },
+      {
+        "id": 50331755,
+        "name": "DHE-RSA-AES256-SHA256",
+        "protocol": "TLSv1.2",
+        "description": "DHE-RSA-AES256-SHA256          TLSv1.2 Kx=DH       Au=RSA   Enc=AES(256)               Mac=SHA256",
+        "strength_bits": 256,
+        "alg_bits": 256,
+        "aead": false,
+        "symmetric": "aes-256-cbc",
+        "digest": "sha256",
+        "kea": "kx-dhe",
+        "auth": "auth-rsa"
+      },
+      {
+        "id": 50331751,
+        "name": "DHE-RSA-AES128-SHA256",
+        "protocol": "TLSv1.2",
+        "description": "DHE-RSA-AES128-SHA256          TLSv1.2 Kx=DH       Au=RSA   Enc=AES(128)               Mac=SHA256",
+        "strength_bits": 128,
+        "alg_bits": 128,
+        "aead": false,
+        "symmetric": "aes-128-cbc",
+        "digest": "sha256",
+        "kea": "kx-dhe",
+        "auth": "auth-rsa"
+      }
+    ]
+  },
+  "github_review": {
+    "open_dependency_alerts": 0,
+    "open_secret_alerts": 0,
+    "repository_advisories": 0,
+    "open_code_scanning_rules": [
+      "CIIBestPracticesID",
+      "MaintainedID",
+      "FuzzingID",
+      "BranchProtectionID"
+    ],
+    "non_pr_public_issues": 0,
+    "issues_pagination_reviewed": true
+  },
+  "static_analysis": {
+    "tool": "Bandit 1.8.6",
+    "scope": "application Python; all severities",
+    "errors": 0,
+    "counts": {
+      "CONFIDENCE.HIGH": 3,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 3,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 5,
+      "SEVERITY.MEDIUM": 1,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 1213,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "findings": [
+      {
+        "rule": "B105",
+        "severity": "LOW",
+        "path": "src/fastapi_mqtt_gateway/api/__init__.py",
+        "line": 172
+      },
+      {
+        "rule": "B105",
+        "severity": "LOW",
+        "path": "src/fastapi_mqtt_gateway/api/__init__.py",
+        "line": 178
+      },
+      {
+        "rule": "B104",
+        "severity": "MEDIUM",
+        "path": "src/fastapi_mqtt_gateway/core/config.py",
+        "line": 25
+      },
+      {
+        "rule": "B101",
+        "severity": "LOW",
+        "path": "src/fastapi_mqtt_gateway/mqtt/client.py",
+        "line": 241
+      },
+      {
+        "rule": "B101",
+        "severity": "LOW",
+        "path": "src/fastapi_mqtt_gateway/mqtt/client.py",
+        "line": 252
+      },
+      {
+        "rule": "B101",
+        "severity": "LOW",
+        "path": "src/fastapi_mqtt_gateway/mqtt/client.py",
+        "line": 267
+      }
+    ],
+    "triage": "See security-assurance.md; exact source locations may move when this PR documents/fixes TLS resource lifetime."
+  },
+  "attestations": {
+    "basis": "explicit primary maintainer confirmation for this wave",
+    "secure_design_and_common_vulnerabilities": true,
+    "external_reports_previous_12_months": false,
+    "access_continuity": false
+  },
+  "unverified": [
+    "whole-project 80% statement coverage",
+    "reproducible release build",
+    "independent release signature verification",
+    "production deployment",
+    "hardware actuation",
+    "independent accessibility assessment",
+    "full native-runtime hardening"
+  ]
+}
