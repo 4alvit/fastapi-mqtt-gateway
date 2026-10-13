@@ -72,6 +72,9 @@
         "value": "package"
       }
     ],
-    "toolkit_revision": "35d84867c34262567801c44a0e4ec9aa5159326e"
+    "toolkit_revision": "d1c3848e874d06a44681e1fbdd58b75c85443df0"
+  },
+  "fuzzing": {
+    "toolkit_ref": "d1c3848e874d06a44681e1fbdd58b75c85443df0"
   }
 }
