@@ -29,7 +29,25 @@
         "-max_len=4096"
       ],
       "seconds": 60,
-      "corpus": "fuzz/corpus/topics"
+      "corpus": "fuzz/corpus/topics",
+      "instrumentation": [
+        {
+          "module": "fastapi_mqtt_gateway.core.topics",
+          "functions": [
+            "validate_topic",
+            "filter_contains",
+            "filters_overlap"
+          ]
+        }
+      ]
     }
+  ],
+  "preflight-paths": [
+    ".github/requirements-fuzz.in",
+    "Dockerfile",
+    "fuzz",
+    "pyproject.toml",
+    "src",
+    "uv.lock"
   ]
 }
