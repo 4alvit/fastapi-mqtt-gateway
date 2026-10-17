@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.7] - 2026-10-17
+
+### Changed
+
+- Validate the pinned Scorecard 5.6 report with the current CI contract.
+- Document where RC fuzz safeguards execute and add illustrated process and result guides.
+
+### Upgrade
+
+This release updates CI validation and operator documentation; application configuration and runtime behavior are unchanged from 0.1.6. Preserve local configuration and retain the previous package for rollback.
+
+### Security
+
+The Scorecard contract change improves validation of security evidence. It does not claim a new application vulnerability fix or additional device acceptance.
+
 ## [0.1.6] - 2026-10-14
 
 ### Changed
