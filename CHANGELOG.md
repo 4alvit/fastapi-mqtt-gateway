@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.8] - 2026-10-18
+
+### Changed
+
+- Update the development pre-commit tool from 4.6.2 to 4.7.0; application dependencies are unchanged.
+
+### Upgrade
+
+This is a maintenance release with no configuration or data migration. Preserve installation-specific configuration and retain the previous package for rollback.
+
+### Security
+
+Required CI, dependency checks and source-bound RC qualification remain enabled. No additional runtime security fix is claimed.
+
 ## [0.1.7] - 2026-10-17
 
 ### Changed
