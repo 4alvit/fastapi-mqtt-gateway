@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.9] - 2026-10-20
+
+### Changed
+
+- Update the locked Ruff development tool to 0.17.1 and refresh the pinned CodeQL actions.
+
+### Upgrade
+
+Use the existing update procedure, preserve local configuration and retain the previous immutable package for rollback. No configuration migration is required.
+
+### Security
+
+Required dependency, source and release checks remain enabled. This maintenance beta does not claim a new application vulnerability fix or device acceptance.
+
 ## [0.1.8] - 2026-10-18
 
 ### Changed
