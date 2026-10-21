@@ -196,6 +196,22 @@ curl -X POST http://localhost:8000/mqtt/retained \
   -d '{"topic": "gateway/sensors/temp"}'
 ```
 
+### Topic statistics
+
+`GET /mqtt/topics` lists active subscriptions; `GET /mqtt/topics/{topic}` returns
+statistics for an exact subscribed topic. Each received packet updates its count
+and last message, including the actual MQTT QoS, retain flag, and Unix timestamp
+in seconds. Counts describe received deliveries, including possible duplicates;
+they are not a durable history. Payloads use UTF-8 with replacement for invalid
+bytes, as in WebSocket streaming.
+
+The cache retains at most `MQTT_QUEUE_SIZE` concrete topics (default 256), evicting
+the least recently updated topic when full. A topic's count starts again after
+eviction or application restart. Only topics allowed by the configured ACL and
+packets within `MAX_MESSAGE_BYTES` enter this cache. Wildcard subscriptions remain
+filters rather than aggregate counters; use an exact subscription to inspect a
+concrete topic's cached statistics.
+
 ### WebSocket Streaming
 
 ```javascript

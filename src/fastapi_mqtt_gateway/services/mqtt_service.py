@@ -1,7 +1,10 @@
 import asyncio
+import time
+from collections import OrderedDict
 from uuid import uuid4
 
 import structlog
+from fastapi import HTTPException
 
 from fastapi_mqtt_gateway.core.config import Settings
 from fastapi_mqtt_gateway.core.topics import authorize_topic
@@ -30,8 +33,7 @@ class MQTTService:
         self._subscriptions: dict[str, int] = {}
         self._owners: dict[str, dict[str, int]] = {}
         self._subscription_lock = asyncio.Lock()
-        self._topic_messages: dict[str, MQTTMessage] = {}
-        self._message_counts: dict[str, int] = {}
+        self._topic_statistics: OrderedDict[str, TopicInfo] = OrderedDict()
 
     async def publish(self, request: PublishRequest) -> PublishResponse:
         authorize_topic(request.topic, self.settings)
@@ -131,20 +133,31 @@ class MQTTService:
 
     async def get_topic_info(self, topic: str) -> TopicInfo:
         authorize_topic(topic, self.settings, subscription=True)
-        count = self._message_counts.get(topic, 0)
-        last_msg = self._topic_messages.get(topic)
-        return TopicInfo(topic=topic, message_count=count, last_message=last_msg)
+        statistics = self._topic_statistics.get(topic)
+        return statistics if statistics is not None else TopicInfo(topic=topic, message_count=0)
 
-    def handle_message(self, topic: str, payload: bytes) -> None:
-        self._message_counts[topic] = self._message_counts.get(topic, 0) + 1
+    def handle_message(self, message: ReceivedMessage) -> None:
+        if len(message.payload) > self.settings.max_message_bytes:
+            return
+        try:
+            authorize_topic(message.topic, self.settings)
+        except HTTPException:
+            return
         msg = MQTTMessage(
-            topic=topic,
-            payload=payload.decode() if isinstance(payload, bytes) else payload,
-            qos=0,
-            retain=False,
-            timestamp=asyncio.get_event_loop().time(),
+            topic=message.topic,
+            payload=message.payload.decode(errors="replace"),
+            qos=message.qos,
+            retain=message.retain,
+            timestamp=time.time(),
         )
-        self._topic_messages[topic] = msg
+        previous = self._topic_statistics.pop(message.topic, None)
+        if previous is None and len(self._topic_statistics) >= self.settings.mqtt_queue_size:
+            self._topic_statistics.popitem(last=False)
+        self._topic_statistics[message.topic] = TopicInfo(
+            topic=message.topic,
+            message_count=previous.message_count + 1 if previous else 1,
+            last_message=msg,
+        )
 
     def get_subscriptions(self) -> dict[str, int]:
         return self._subscriptions.copy()
