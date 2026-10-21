@@ -31,13 +31,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Starting application", version=settings.app_version)
 
     mqtt_client = MQTTClient(settings)
+    mqtt_service = MQTTService(mqtt_client, settings)
     try:
+        mqtt_client.add_packet_callback(mqtt_service.handle_message)
         await mqtt_client.connect()
         app.state.mqtt_client = mqtt_client
-        app.state.mqtt_service = MQTTService(mqtt_client, settings)
+        app.state.mqtt_service = mqtt_service
         yield
     finally:
         logger.info("Shutting down application")
+        mqtt_client.remove_packet_callback(mqtt_service.handle_message)
         await mqtt_client.disconnect()
 
 

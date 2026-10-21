@@ -1,18 +1,24 @@
 # Changelog
 
-## [0.1.9] - 2026-10-20
+## [0.1.9] - 2026-10-21
+
+### Fixed
+
+- Connect topic statistics to MQTT packet delivery throughout the application lifespan, and remove the handler before disconnecting the broker client.
+- Preserve received QoS, retain flags and wall-clock timestamps; bound the exact-topic cache by `MQTT_QUEUE_SIZE` and enforce existing topic/payload limits.
 
 ### Changed
 
 - Update the locked Ruff development tool to 0.17.1 and refresh the pinned CodeQL actions.
+- Refresh certifi to 2026.10.19 and virtualenv to 21.14.9, including its required packaging 26.3 dependency, to pass the current dependency security gate.
 
 ### Upgrade
 
-Use the existing update procedure, preserve local configuration and retain the previous immutable package for rollback. No configuration migration is required.
+Use the existing update procedure, preserve local configuration and retain the previous immutable package for rollback. No configuration migration is required. Topic statistics count received packets since their current cache entry was created and reset after eviction or restart; wildcard subscriptions do not aggregate counters.
 
 ### Security
 
-Required dependency, source and release checks remain enabled. This maintenance beta does not claim a new application vulnerability fix or device acceptance.
+The dependency refresh addresses the certifi CA-bundle advisory GHSA-6q48-6c7w-9gw2 and the reported virtualenv activation-script vulnerabilities. Required dependency, source and release checks remain enabled. The topic cache applies the existing ACL and payload-size limits before retaining data and cannot grow beyond `MQTT_QUEUE_SIZE` entries. No device acceptance or live broker validation is claimed.
 
 ## [0.1.8] - 2026-10-18
 
