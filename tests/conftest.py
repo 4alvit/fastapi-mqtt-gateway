@@ -14,6 +14,7 @@ from slowapi.errors import RateLimitExceeded
 
 from fastapi_mqtt_gateway.core.auth import create_access_token
 from fastapi_mqtt_gateway.core.config import Settings, get_settings
+from fastapi_mqtt_gateway.mqtt.client import ReceivedMessage
 
 
 def _test_settings() -> Settings:
@@ -67,13 +68,13 @@ def mock_mqtt_client() -> MagicMock:
     client.is_connected.return_value = True
     client.message_queue_empty.return_value = True
     client.publish = AsyncMock(return_value=42)
-    callbacks: list[Callable[[str, bytes], None]] = []
-    client.add_message_callback.side_effect = callbacks.append
-    client.remove_message_callback.side_effect = callbacks.remove
+    callbacks: list[Callable[[ReceivedMessage], None]] = []
+    client.add_packet_callback.side_effect = callbacks.append
+    client.remove_packet_callback.side_effect = callbacks.remove
 
     def emit(topic: str, payload: bytes) -> None:
         for callback in tuple(callbacks):
-            callback(topic, payload)
+            callback(ReceivedMessage(topic, payload, 0, False))
 
     client.emit = emit
     return client

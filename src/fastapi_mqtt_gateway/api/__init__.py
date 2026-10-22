@@ -44,7 +44,7 @@ from fastapi_mqtt_gateway.models import (
     UnsubscribeRequest,
     UnsubscribeResponse,
 )
-from fastapi_mqtt_gateway.mqtt.client import MQTTClient
+from fastapi_mqtt_gateway.mqtt.client import MQTTClient, ReceivedMessage
 from fastapi_mqtt_gateway.services.mqtt_service import MQTTService
 
 router = APIRouter()
@@ -215,7 +215,8 @@ async def websocket_endpoint(
     acquired: list[str] = []
     overflow = asyncio.Event()
 
-    def ws_callback(topic: str, payload: bytes) -> None:
+    def ws_callback(message: ReceivedMessage) -> None:
+        topic, payload = message.topic, message.payload
         if not any(topic_matches_sub(pattern, topic) for pattern in requested):
             return
         # MQTTClient dispatches callbacks on the ASGI event loop.
@@ -226,8 +227,8 @@ async def websocket_endpoint(
                 MQTTMessage(
                     topic=topic,
                     payload=payload.decode(errors="replace"),
-                    qos=0,
-                    retain=False,
+                    qos=message.qos,
+                    retain=message.retain,
                     timestamp=time.time(),
                 )
             )
@@ -265,7 +266,7 @@ async def websocket_endpoint(
 
     finished = asyncio.Event()
     close_message: tuple[int, str] | None = None
-    mqtt_client.add_message_callback(ws_callback)
+    mqtt_client.add_packet_callback(ws_callback)
     try:
         for topic in requested:
             await mqtt_service.acquire_subscription(topic, 0, owner)
@@ -310,7 +311,7 @@ async def websocket_endpoint(
         with contextlib.suppress(RuntimeError):
             await websocket.close(code=1011, reason="Stream unavailable")
     finally:
-        mqtt_client.remove_message_callback(ws_callback)
+        mqtt_client.remove_packet_callback(ws_callback)
         # ASGI servers cancel disconnected requests. Cleanup must still release
         # this connection's subscriptions without touching another owner's.
         with anyio.CancelScope(shield=True):
