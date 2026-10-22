@@ -64,7 +64,7 @@ def test_browser_must_authenticate_before_receiving_data(
             ws.receive_json()
     assert exc.value.code == 1008
     mock_mqtt_client.subscribe.assert_not_called()
-    mock_mqtt_client.add_message_callback.assert_not_called()
+    mock_mqtt_client.add_packet_callback.assert_not_called()
 
 
 def test_browser_auth_deadline(
@@ -184,7 +184,7 @@ def test_failed_second_subscription_cleans_up_first(
         ws.receive_json()
     assert exc.value.code == 1011
     mock_mqtt_client.unsubscribe.assert_awaited_once_with("devices/a")
-    mock_mqtt_client.remove_message_callback.assert_called_once()
+    mock_mqtt_client.remove_packet_callback.assert_called_once()
 
 
 @pytest.mark.parametrize(

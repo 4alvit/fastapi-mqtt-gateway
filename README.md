@@ -232,6 +232,13 @@ subscription or data delivery occurs before authentication. Tokens are never
 accepted in URLs. Streams close when the token expires; obtain a fresh token and
 reconnect. A `ready` frame confirms that subscriptions have been registered.
 
+Each data frame includes the received packet's `qos` and `retain` values, with a
+Unix `timestamp` in seconds. These describe the broker's actual delivery,
+including retained replay. WebSocket subscriptions request QoS 0, but another
+consumer such as a REST subscription can raise the shared subscription's QoS;
+the stream preserves the received value. Payloads use UTF-8 with replacement for
+invalid bytes.
+
 ACL rules apply to REST and WebSocket operations. A subscription must fit wholly
 inside one allowed filter and must not overlap a blocked filter. For example,
 with `sensors/private/#` blocked, request `sensors/public/#` instead of `sensors/#`.

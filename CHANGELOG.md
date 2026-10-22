@@ -1,11 +1,12 @@
 # Changelog
 
-## [0.1.9] - 2026-10-21
+## [0.1.9] - 2026-10-22
 
 ### Fixed
 
 - Connect topic statistics to MQTT packet delivery throughout the application lifespan, and remove the handler before disconnecting the broker client.
 - Preserve received QoS, retain flags and wall-clock timestamps; bound the exact-topic cache by `MQTT_QUEUE_SIZE` and enforce existing topic/payload limits.
+- Preserve received QoS and retain flags in authenticated WebSocket data frames, including when a REST consumer shares a higher-QoS subscription. Remove the packet callback on disconnect, setup/send failure and cancellation.
 
 ### Changed
 
