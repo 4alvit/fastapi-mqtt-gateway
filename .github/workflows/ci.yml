@@ -18,7 +18,7 @@ jobs:
           python-version: '3.12'
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884
         with:
-          version: 0.12.18
+          version: 0.13.4
       - run: bash scripts/ci.sh
   tls-python-311:
     name: TLS policy (Python 3.11)
@@ -36,7 +36,7 @@ jobs:
           python-version: '3.11'
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884
         with:
-          version: 0.12.18
+          version: 0.13.4
       - name: Install the locked profile and test actual TLS clients
         env:
           UV_PYTHON: '3.11'
