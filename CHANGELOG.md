@@ -19,6 +19,8 @@ Use the existing update procedure, preserve local configuration and retain the p
 
 ### Security
 
+- Update the locked development tools to filelock 4.2.1 and virtualenv 21.14.13, addressing CVE-2026-112940 and CVE-2026-115586. Application dependencies and required security checks are unchanged.
+
 The dependency refresh addresses the certifi CA-bundle advisory GHSA-6q48-6c7w-9gw2 and the reported virtualenv activation-script vulnerabilities. Required dependency, source and release checks remain enabled. The topic cache applies the existing ACL and payload-size limits before retaining data and cannot grow beyond `MQTT_QUEUE_SIZE` entries. No device acceptance or live broker validation is claimed.
 
 ## [0.1.8] - 2026-10-18
