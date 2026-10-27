@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.10] - Development line
+
+### Changed
+
+- Update the locked Ruff development tool from 0.17.1 to 0.17.2.
+- Refresh pinned CI actions and shared release tooling, including documented retention of the dedicated release-version ledger.
+
+### Upgrade
+
+Application dependencies, runtime behavior and configuration are unchanged from 0.1.9. Use the existing update procedure, preserve local configuration and retain the previous immutable package for rollback.
+
+### Security
+
+The existing dependency, TLS, source and release checks remain required. No new runtime security fix or live broker acceptance is claimed.
+
 ## [0.1.9] - 2026-10-22
 
 ### Fixed
