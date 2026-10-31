@@ -107,3 +107,17 @@ Update these declarations when production functions move or are renamed.
 They prove that the selected code is instrumented; they do not prove
 exhaustive path coverage. Keep positive and rejected-input corpus cases
 and independent semantic assertions alongside the existing unit tests.
+
+## Release artifact selection and retries
+
+Fresh release package uploads and RC fuzz evidence use
+`-run-<run_id>-attempt-<run_attempt>` names. Candidate and final collection
+select only matching artifacts from the current run and attempt. After a failed
+attempt, use **Re-run all jobs** so every required input is recreated together;
+older artifacts must not substitute for a missing current-attempt input.
+
+Mutation remains limited to an explicit RC dispatch on the public default
+branch. A report describes one source revision and run, not complete platform
+coverage or device acceptance. Ordinary receipt verification and project
+acceptance remain separate release prerequisites. See the shared
+[evidence contract](rc-fuzzing.md).
