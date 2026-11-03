@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.10] - 2026-11-03
+
+### Security
+
+- Require websockets 17.4 or newer and update the locked runtime from 17.0.1 to 17.4, addressing [GHSA-6m5v-9gmr-5665](https://github.com/python-websockets/websockets/security/advisories/GHSA-6m5v-9gmr-5665). The dependency floor also applies to package installations that do not use the lock file.
+- Select Uvicorn's supported `wsproto` transport in the container and documented startup command. Uvicorn's default SansIO transport accumulates its own fragment list, outside the patched websockets message assembler. The selected transport accumulates payload bytes instead and retains the message-size limit; require Uvicorn 0.52.0 and wsproto 1.3.2 or newer. Disable optional WebSocket compression to avoid the installed wsproto decoder losing compression state on an interleaved control frame.
+
+### Upgrade
+
+Update the package or container using the existing installation procedure. Custom Uvicorn launch commands must include `--ws wsproto --ws-per-message-deflate false`; the container command already does. No data migration is required; preserve local configuration and credentials. Existing authentication, topic ACLs, payload limits and MQTT behavior remain unchanged. Software checks do not establish acceptance against a live broker or device.
+
 ## [0.1.9] - 2026-10-22
 
 ### Fixed

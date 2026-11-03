@@ -10,6 +10,31 @@ Untrusted REST/WebSocket requests pass through the FastAPI API, JWT validation a
 
 TLS-enabled Paho connections use `mqtt/tls.py` and `tls_policy.py`: ordinary chain/hostname validation is followed by exact certificate-key minimum checks. TLS 1.2 is the minimum; RSA keys must be at least 2048 bits. MQTT TLS remains opt-in, and HTTP ingress is deployment-managed: encrypted traffic is not guaranteed by default. Configure both before crossing an untrusted network. See [TLS policy](tls-policy.md).
 
+## WebSocket transport
+
+Since 0.1.10, the container and documented command explicitly select
+`uvicorn --ws wsproto --ws-per-message-deflate false`, with Uvicorn >=0.52.0 and wsproto >=1.3.2. The selected
+implementation accumulates message payload in a byte/text buffer rather than a
+list of fragment objects. Empty continuation frames therefore do not enlarge a
+retained fragment list. Uvicorn's configured message-size limit applies to binary
+bytes and UTF-8 text bytes; completed messages then pass through the application's
+authentication, topic ACLs and MQTT payload checks.
+
+The websockets dependency also requires >=17.4 for
+[GHSA-6m5v-9gmr-5665](https://github.com/python-websockets/websockets/security/advisories/GHSA-6m5v-9gmr-5665).
+That library fix alone does not bound Uvicorn's separate SansIO fragment list.
+Do not replace the explicit transport with `--ws auto` in a custom command.
+Loopback tests exercise fragmented authentication, empty fragments, ping/pong,
+and binary/text size rejection through the selected installed transport. These
+tests do not establish service availability under arbitrary traffic or replace
+connection and rate limits at the ingress.
+
+Optional per-message compression is disabled. With the installed wsproto 1.3.2,
+a ping between compressed message fragments resets the decoder state and can
+reject a valid continuation as invalid UTF-8. Uncompressed negotiation avoids
+that failure and keeps memory accounting independent of decompression. Clients
+can offer compression but receive no compression extension in the handshake.
+
 ## Static analysis triage
 
 The application-only Bandit 1.8.6 scan on 2026-10-13 reviewed all severities: one medium and five low findings, with no scanner errors. B104 at the configured `0.0.0.0` listener is intentional container service exposure; do not expose it without the documented authenticated ingress. Two B105 findings are empty WebSocket-token sentinels, not usable credentials. Three B101 findings only narrow the MQTT client's type after a normal `is_connected()` guard; required connection checks remain active under Python optimization. No rule was disabled to conceal these findings.
