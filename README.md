@@ -127,8 +127,16 @@ pip install -e ".[dev]"
 docker run -d -p 1883:1883 -p 9001:9001 eclipse-mosquitto:2.0
 
 # Run gateway
-uvicorn fastapi_mqtt_gateway.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn fastapi_mqtt_gateway.main:app --reload --host 0.0.0.0 --port 8000 --ws wsproto --ws-per-message-deflate false
 ```
+
+Keep `--ws wsproto --ws-per-message-deflate false` in custom launch commands. The container uses this transport too:
+it accumulates fragmented payloads without retaining an unbounded list of empty
+fragments. Uvicorn's `--ws-max-size` still bounds each message (16 MiB by default);
+the gateway applies its own authentication and MQTT payload limits afterward.
+Optional WebSocket compression is disabled to preserve fragmented UTF-8 messages
+when control frames interleave; clients negotiate ordinary uncompressed messages.
+See [transport security](docs/security-assurance.md#websocket-transport).
 
 ## Configuration
 

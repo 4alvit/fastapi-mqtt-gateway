@@ -20,8 +20,12 @@ jobs:
         with:
           version: 0.13.4
       - run: bash scripts/ci.sh
-  tls-python-311:
-    name: TLS policy (Python 3.11)
+  transport-compatibility:
+    name: TLS and WebSocket (Python ${{ matrix.python }})
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
     runs-on: ${{ fromJSON((vars.CI_RUNNER_MODE == 'self-hosted' || vars.CI_RUNNER_MODE == 'k3s') && ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || (contains(fromJSON('["push","schedule","workflow_dispatch"]'), github.event_name) && github.ref == format('refs/heads/{0}', github.event.repository.default_branch))) && (vars.CI_RUNNER_LABELS || '[]') || '["ubuntu-latest"]') }}
     timeout-minutes: 15
     steps:
@@ -33,15 +37,15 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python }}
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: 0.13.4
-      - name: Install the locked profile and test actual TLS clients
+      - name: Install the locked profile and test actual TLS and WebSocket clients
         env:
-          UV_PYTHON: '3.11'
+          UV_PYTHON: ${{ matrix.python }}
         run: |
           uv sync --locked --all-extras
-          uv run --locked pytest tests/test_tls_policy.py tests/test_mqtt_tls.py
+          uv run --locked pytest tests/test_tls_policy.py tests/test_mqtt_tls.py tests/test_websocket_transport.py
 'on':
   workflow_call: {}
