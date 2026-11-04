@@ -506,7 +506,7 @@ wheels = [
 
 [[package]]
 name = "fastapi-mqtt-gateway"
-version = "0.1.10"
+version = "0.1.11"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },
