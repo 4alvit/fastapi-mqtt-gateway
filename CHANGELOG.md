@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.1.11] - 2026-11-04
+
+### Changed
+
+- Update the locked python-multipart runtime dependency from 0.0.32 to 0.0.33.
+
+### Fixed
+
+- Validate committed release notes together with the exact publication provenance before reserving package versions. Reject oversized UTF-8 bodies before allocation, and check the current changelog in CI.
+
+### Upgrade
+
+Use the existing package or container update procedure and preserve local configuration and credentials. No configuration or data migration is required. This release does not claim live broker or device acceptance.
+
+### Security
+
+Authentication, topic ACLs, payload limits and required security checks remain unchanged. This maintenance update does not claim a newly fixed application vulnerability.
+
 ## [0.1.10] - 2026-11-03
 
 ### Security
