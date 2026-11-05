@@ -20,7 +20,7 @@ The project is developed publicly in [Git](https://github.com/4alvit/fastapi-mqt
 - [Test suite](../tests) and [CI workflows](../.github/workflows)
 - [Local CI entry point](../scripts/ci.sh)
 - [CodeQL analysis](../.github/workflows/codeql.yml)
-- [Dependency update configuration](../.github/dependabot.yml)
+- [Dependency update configuration](../renovate.json)
 
 The gate runs Ruff, formatting, mypy and pytest with coverage. Tests exercise authentication, MQTT topic ACLs, WebSocket security, delivery acknowledgements, reconnect behavior and service readiness. Use synthetic credentials and local broker fixtures.
 
