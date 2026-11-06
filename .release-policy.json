@@ -82,7 +82,9 @@
   },
   "change_scope": {
     "documentation_paths": [],
-    "required_paths": [],
+    "required_paths": [
+      "README.md"
+    ],
     "always_validate_workflows": [
       "codeql.yml",
       "release-security.yml"
