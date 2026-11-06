@@ -83,7 +83,8 @@
   "change_scope": {
     "documentation_paths": [],
     "required_paths": [
-      "README.md"
+      "README.md",
+      "CHANGELOG.md"
     ],
     "always_validate_workflows": [
       "codeql.yml",

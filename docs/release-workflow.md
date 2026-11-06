@@ -14,10 +14,11 @@ The optional `change_scope` policy provides exact `documentation_paths`, exact
 `required_paths` for documentation used as a build input, and
 `always_validate_workflows` for independently required checks. Documentation paths
 cannot exempt source, tests, fixtures, build configuration or dependencies.
-Manual dispatch, scheduled runs and release qualification remain full. Only with
-explicit `change_scope` opt-in does a documentation-only push stop before release
-preparation, version allocation, artifact builds or publication. This does not
-change the configured nightly policy.
+Documentation-only skipping applies to PR and merge-queue validation. Main-branch
+pushes, manual dispatch, scheduled runs and release qualification retain the full
+release path, even with `change_scope` enabled. This preserves security and contract
+checks and avoids leaving an in-flight release without a replacement when the
+default branch advances. The configured nightly policy is unchanged.
 
 ## Local checks
 
