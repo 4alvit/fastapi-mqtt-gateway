@@ -10,11 +10,24 @@
     "docker-compose",
     "dockerfile",
     "pep621",
-    "pip_requirements"
+    "pip_requirements",
+    "pip-compile"
   ],
   "pip_requirements": {
     "managerFilePatterns": [
       "/(^|/)requirements[^/]*\\.(txt|pip)$/"
+    ],
+    "ignorePaths": [
+      "**/vendor/**",
+      "**/node_modules/**",
+      "**/fixtures/**",
+      ".github/requirements-fuzz.txt",
+      ".github/requirements-fuzz.in"
+    ]
+  },
+  "pip-compile": {
+    "managerFilePatterns": [
+      "/^\\.github/requirements\\-fuzz\\.txt$/"
     ]
   }
 }
