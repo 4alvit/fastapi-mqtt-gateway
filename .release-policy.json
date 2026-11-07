@@ -78,6 +78,17 @@
     ]
   },
   "fuzzing": {
-    "toolkit_ref": "35ea6ef05730806bd85e27fdbbeed326ac5c3deb"
+    "toolkit_ref": "18e8ce037bc8305649bc4a40e9ecab81ae4100af"
+  },
+  "change_scope": {
+    "documentation_paths": ["GOVERNANCE.md", "ROADMAP.md"],
+    "required_paths": [
+      "README.md",
+      "CHANGELOG.md"
+    ],
+    "always_validate_workflows": [
+      "codeql.yml",
+      "release-security.yml"
+    ]
   }
 }
