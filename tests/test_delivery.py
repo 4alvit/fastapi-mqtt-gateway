@@ -313,3 +313,72 @@ def test_reentrant_queued_arrival_is_drained_without_loss(settings: Settings) ->
     assert id(client._message_queue) == queue_id
     assert type(client._message_queue) is asyncio.Queue
     assert not client._pending_messages and client._dispatch_pending is False
+
+
+def test_queued_bytearray_payload_is_snapshotted_before_drain(settings: Settings) -> None:
+    """Defensively snapshot an injected bytearray before the ASGI loop drains."""
+    # Paho 2.1 normally delivers bytes; inject its broader typed payload boundary.
+    client = MQTTClient(settings)
+    loop = _ScheduledLoop()
+    client._event_loop = cast(asyncio.AbstractEventLoop, loop)
+    packets: list[ReceivedMessage] = []
+    callbacks: list[tuple[str, bytes]] = []
+    client.add_packet_callback(packets.append)
+    client.add_message_callback(lambda topic, body: callbacks.append((topic, body)))
+    original = b"queued-payload"
+    buffer = bytearray(original)
+    packet = mqtt.MQTTMessage(topic=b"devices/queued")
+    packet.payload, packet.qos, packet.retain = buffer, 2, True
+
+    client._on_message(cast(mqtt.Client, None), None, packet)
+    assert len(loop.scheduled) == 1
+    buffer[:] = b"producer-reused-buffer"
+    loop.scheduled[0]()
+
+    assert len(packets) == 1
+    assert type(packets[0].payload) is bytes
+    assert packets[0] == ReceivedMessage("devices/queued", original, 2, True)
+    assert callbacks == [("devices/queued", original)]
+    assert type(callbacks[0][1]) is bytes
+    topic, queued = client._message_queue.get_nowait()
+    assert topic == "devices/queued" and queued == original
+    assert type(queued) is bytes
+    assert not client._pending_messages and client._dispatch_pending is False
+
+
+def test_direct_bytearray_payload_is_immutable_across_callbacks(settings: Settings) -> None:
+    """Defensively isolate an injected bytearray across callbacks and consumers."""
+    # Paho 2.1 normally delivers bytes; this manually exercises the bytearray case.
+    client = MQTTClient(settings)
+    blocked: list[bool] = []
+    packets: list[ReceivedMessage] = []
+    callbacks: list[tuple[str, bytes]] = []
+
+    def try_mutation(message: ReceivedMessage) -> None:
+        try:
+            memoryview(message.payload)[0] = ord("X")
+        except TypeError:
+            blocked.append(True)
+        else:
+            blocked.append(False)
+
+    client.add_packet_callback(try_mutation)
+    client.add_packet_callback(packets.append)
+    client.add_message_callback(lambda topic, body: callbacks.append((topic, body)))
+    original = b"direct-payload"
+    buffer = bytearray(original)
+    packet = mqtt.MQTTMessage(topic=b"devices/direct")
+    packet.payload, packet.qos, packet.retain = buffer, 1, False
+
+    client._on_message(cast(mqtt.Client, None), None, packet)
+    buffer[:] = b"producer-reused-buffer"
+
+    assert blocked == [True]
+    assert len(packets) == 1
+    assert type(packets[0].payload) is bytes
+    assert packets[0] == ReceivedMessage("devices/direct", original, 1, False)
+    assert callbacks == [("devices/direct", original)]
+    assert type(callbacks[0][1]) is bytes
+    topic, queued = client._message_queue.get_nowait()
+    assert topic == "devices/direct" and queued == original
+    assert type(queued) is bytes
