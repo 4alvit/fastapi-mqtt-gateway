@@ -78,7 +78,7 @@
     ]
   },
   "fuzzing": {
-    "toolkit_ref": "f54201ae71e91d85514bb16ed1ffdf31b82b149f"
+    "toolkit_ref": "d42735efe245c1fa7ceba945a34b77d9d6b8176b"
   },
   "change_scope": {
     "documentation_paths": ["GOVERNANCE.md", "ROADMAP.md"],

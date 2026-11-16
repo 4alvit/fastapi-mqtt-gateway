@@ -382,3 +382,29 @@ def test_direct_bytearray_payload_is_immutable_across_callbacks(settings: Settin
     topic, queued = client._message_queue.get_nowait()
     assert topic == "devices/direct" and queued == original
     assert type(queued) is bytes
+
+
+@pytest.mark.parametrize("queued", [False, True])
+def test_oversized_bytearray_is_rejected_before_copy(settings: Settings, queued: bool) -> None:
+    class NoCopyPayload(bytearray):
+        def __bytes__(self) -> bytes:
+            raise AssertionError("Oversized payload must be rejected before copying")
+
+    settings.max_message_bytes = 3
+    client = MQTTClient(settings)
+    event_loop = MagicMock()
+    if queued:
+        client._event_loop = event_loop
+    payload = NoCopyPayload(b"too large")
+    packet = mqtt.MQTTMessage(topic=b"devices/oversized")
+    packet.payload = payload
+    assert packet.payload is payload
+
+    with patch.object(client, "_deliver_message") as deliver:
+        client._on_message(MagicMock(), None, packet)
+        deliver.assert_not_called()
+
+    assert client._message_queue.empty()
+    assert not client._pending_messages
+    assert not client._dispatch_pending
+    event_loop.call_soon_threadsafe.assert_not_called()
