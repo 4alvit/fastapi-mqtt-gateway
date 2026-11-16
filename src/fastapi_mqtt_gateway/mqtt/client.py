@@ -91,6 +91,7 @@ class MQTTClient:
         if len(payload) > self.settings.max_message_bytes:
             logger.warning("MQTT payload exceeds message limit", topic=topic)
             return
+        payload = bytes(payload)
         if self._event_loop is None:
             self._deliver_message(topic, payload, msg.qos, msg.retain)
             return
