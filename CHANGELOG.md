@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.1.12] - Unreleased
+
+### Changed
+
+- keep local instruction files out of git.
+- add a navigation index for docs/.
+- isolate every auto-merge base edit (#153).
+- preserve merge identity and withdrawn auto-merge requests (#152).
+- classify reviewed documentation paths without heavy fanout (#146).
+- guard full release qualification during scope regeneration (#145).
+- retain full release qualification and changelog validation (#144).
+- keep package readme changes fully validated (#143).
+- limit documentation-only validation fanout (#142).
+- Complete dependency update migration to Renovate (#141).
+
+### Upgrade
+
+Use the existing package or container update procedure and preserve local configuration and credentials. No configuration or data migration is required. This release does not claim live broker or device acceptance.
+
+### Security
+
+Authentication, topic ACLs, payload limits and required security checks remain unchanged. This maintenance update does not claim a newly fixed application vulnerability.
+
 ## [0.1.11] - 2026-11-04
 
 ### Changed
